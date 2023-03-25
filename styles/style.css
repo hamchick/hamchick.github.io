@@ -83,3 +83,86 @@
 
     margin: 0 5px; /* 設定一些間距 */
   }
+
+@import url("https://fonts.googleapis.com/css2?family=Raleway:wght@600&display=swap");
+#typing_div {
+  
+  background: white;
+  font-family: "Raleway", sans-serif;
+  padding: 0px;
+  color: black;
+  font-size: 36px;
+  font-weight: 400;
+}
+
+#typing {
+  z-index: 1;
+  display: flex;
+  height: 50px;
+  width: 900px;
+  overflow: hidden;
+  position: relative;
+}
+
+.static-text {
+  white-space: nowrap;
+}
+
+.dynamic-text {
+  z-index: 1;
+  position: relative;
+  height: 50px;
+  margin-left: 10px;
+  white-space: nowrap;
+  font-weight: bold;
+  color: blue;
+}
+.dynamic-text:before {
+  z-index: 1;
+  content: "";
+  position: absolute;
+  border-left: solid 1px #edde5d;
+  width: 100%;
+  height: 100%;
+  bottom: 0;
+  left: 0;
+  background: white;
+  animation: typewriter 5s steps(16) infinite, blink 0.5s steps(16) infinite;
+}
+
+@keyframes typewriter {
+  40%, 60% {
+    left: 100%;
+  }
+  100% {
+    left: 0;
+  }
+}
+@keyframes blink {
+  from {
+    border-left: solid 2px darkblue;
+  }
+  to {
+    border-left: solid 2px transparent;
+  }
+}
+.dynamic-text-wrapper {
+  z-index: 1;
+  position: relative;
+  top: 0px;
+  animation: moveup 15s steps(3) infinite;
+}
+
+@keyframes moveup {
+  0% {
+    top: 0;
+  }
+  100% {
+    top: -150px;
+  }
+}
+
+#top-image {
+  position: relative;
+  z-index: 2;
+}
