@@ -46,6 +46,10 @@
   </nav>
 
 
+
+
+
+
   <!-- About section -->
   <section id="about">
     <div class="container px-4">
@@ -56,12 +60,7 @@
           <div class="display-6">
             <div id="typing_div"> 
               <div class="container" id="typing">
-                  <div class="static-text">An enthusiast of </div>
-                  <div class="dynamic-text-wrapper">
-                    <div class="dynamic-text">Computer Science</div>
-                    <div class="dynamic-text">Economics</div>
-                    <div class="dynamic-text">Chasing Dreams</div>
-                  </div>
+                <h1>An enthusiast of  <span class="bestde text-primary"></span></h1>
                 </div>
               </div>
           </div>
@@ -353,6 +352,9 @@
           <a href="https://www.instagram.com/ham_chick_/">
             <img src="images/ins.jpg" alt="instagram " style="width:50px">
           </a>
+          <a href="mailto:chickenhamgod@gmail.com">
+            <img src="images/gmail_logo.png" alt="gmail " style="width:50px">
+          </a>
 
         </div>
         <div class="col-4">
@@ -367,6 +369,20 @@
     <br>
     <p class="footer small text-muted text-center">Designed and implemented by Sin-En Huang inspired by CS50W.</p>
   </footer>
+
+  <!--  -->
+  <script type="text/javascript" src="scripts/typed.js"></script>
+  <script type="text/javascript">
+      var typed = new Typed('.bestde', {
+          strings: ["Computer Science",'Economics', 'Blockchain', 'Chasing Dreams'],
+        typeSpeed: 100,
+        backSpeed: 60,
+        loop:true,
+    });
+  </script>
+
+
+
 
 </body>
 </html>

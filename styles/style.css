@@ -85,9 +85,14 @@
   }
 
 @import url("https://fonts.googleapis.com/css2?family=Raleway:wght@600&display=swap");
+
+
+
+
 #typing_div {
   
   background: white;
+  position: relative;
   font-family: "Raleway", sans-serif;
   padding: 0px;
   color: black;
@@ -98,8 +103,7 @@
 #typing {
   z-index: 1;
   display: flex;
-  height: 50px;
-  width: 900px;
+  width: 100%;
   overflow: hidden;
   position: relative;
 }
