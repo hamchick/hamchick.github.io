@@ -1,0 +1,76 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+@theme {
+  --color-bg: rgb(var(--bg));
+  --color-card: rgb(var(--card));
+  --color-ink: rgb(var(--ink));
+  --color-muted: rgb(var(--muted));
+  --color-line: rgb(var(--line));
+  --color-accent: rgb(var(--accent));
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", "Noto Sans TC", "PingFang TC", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+:root {
+  --bg: 248 246 240;
+  --card: 255 253 248;
+  --ink: 28 30 36;
+  --muted: 98 100 110;
+  --line: 222 218 208;
+  --accent: 222 110 30;
+
+  --pond-water: 70 125 180;
+  --pond-crumb: 160 105 50;
+  --duck-yellow: 232 172 20;
+  --duck-yellow-shade: 186 120 10;
+  --duck-white: 150 150 158;
+  --duck-white-shade: 105 105 118;
+  --duck-chick: 236 190 50;
+  --duck-chick-shade: 200 145 30;
+  --duck-beak: 226 96 24;
+  --duck-eye: 25 25 30;
+  color-scheme: light;
+}
+
+[data-theme="dark"] {
+  --bg: 17 20 28;
+  --card: 26 30 40;
+  --ink: 232 230 224;
+  --muted: 150 154 166;
+  --line: 52 58 72;
+  --accent: 255 160 70;
+
+  --pond-water: 110 165 230;
+  --pond-crumb: 220 165 100;
+  --duck-yellow: 250 205 70;
+  --duck-yellow-shade: 205 145 35;
+  --duck-white: 238 236 230;
+  --duck-white-shade: 165 168 182;
+  --duck-chick: 255 226 120;
+  --duck-chick-shade: 215 170 70;
+  --duck-beak: 255 140 50;
+  --duck-eye: 12 12 16;
+  color-scheme: dark;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: rgb(var(--bg));
+  color: rgb(var(--ink));
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: rgb(var(--accent) / 0.25);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
