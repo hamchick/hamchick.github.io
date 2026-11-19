@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { DuckPond } from "@/components/duck-pond/duck-pond";
+import { Pond } from "@/components/koi-pond/pond";
 import { Reveal, RotatingWord } from "@/components/motion";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { certificates, education, experience, profile, projects, skills, thesis, type TimelineItem } from "@/data/profile";
@@ -64,7 +64,7 @@ function Timeline({ items }: { items: TimelineItem[] }) {
 export default function Home() {
   return (
     <>
-      <DuckPond />
+      <Pond />
 
       <header className="sticky top-0 z-30 border-b border-line/60 bg-bg/70 backdrop-blur-md" data-pond-ignore>
         <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4 sm:px-6">
