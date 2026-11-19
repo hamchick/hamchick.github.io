@@ -659,7 +659,8 @@ export class KoiRenderer {
         const look = palette.duck;
         const W = DUCK_SPRITE_WIDTH;
         const outline = this.style(packRgb(look.outline));
-        const feet = mix(look.bill, palette.bg, 0.45);
+        // Seen through a little water: the bill's orange, only slightly muted.
+        const feet = mix(look.bill, palette.bg, 0.2);
 
         for (const d of world.ducks) {
             const p = d.pixel;
@@ -727,19 +728,6 @@ export class KoiRenderer {
                 }
             }
 
-            // Two orange feet under the water, stroking back and forth out of step with each other.
-            if (!dabbling) {
-                ctx.globalAlpha = 0.45 * dim;
-                ctx.fillStyle = this.style(packRgb(feet));
-                for (const [base, phase] of [
-                    [4, 1],
-                    [8, -1],
-                ]) {
-                    const r = rect(base + Math.round(stroke * phase * 1.5 * effort), DUCK_SPRITE_HEIGHT);
-                    ctx.fillRect(r.x, r.y, r.w * 2, Math.max(1, Math.round(p * 0.75)));
-                }
-            }
-
             for (let r = 0; r < frame.length; r++) {
                 for (let c = 0; c < W; c++) {
                     const px = duckPixel(frame, c, r);
@@ -787,6 +775,37 @@ export class KoiRenderer {
                     if (!at(c + 1, r)) ctx.fillRect(toRight ? sx + w : sx - line, sy, line, h);
                     if (!at(c, r - 1)) ctx.fillRect(sx, sy - line, w, line);
                     if (!at(c, r + 1) && r + 1 < DUCK_WATERLINE) ctx.fillRect(sx, sy + h, w, line);
+                }
+            }
+
+            // Two orange webbed feet just under the belly, drawn over it so they show through the water. They kick
+            // out of step: each sweeps back and a pixel lower on its push, then swings forward again. Through a
+            // glide they trail behind, still.
+            if (!dabbling) {
+                ctx.globalAlpha = 0.75 * dim;
+                ctx.fillStyle = this.style(packRgb(feet));
+                const reachOfStroke = clamp(d.speed / 30, 0.5, 1);
+                for (const [base, phase] of [
+                    [5, 1],
+                    [8, -1],
+                ]) {
+                    // Where the foot is in its kick, from -1 (back) to 1 (forward); trailing back when gliding.
+                    const kick = d.beat * stroke * phase * reachOfStroke + (1 - d.beat) * -0.7;
+                    const col = base + Math.round(kick * 2);
+                    // Pushing back while the stroke is falling for this foot.
+                    const pushing = d.beat > 0.3 && Math.cos(d.paddle) * phase < 0;
+                    const sink = pushing ? 1 : 0;
+                    // A small fan: two pixels at the ankle, three across the web, toes pointing back.
+                    for (const [dc, dr] of [
+                        [0, 0],
+                        [1, 0],
+                        [-1, 1],
+                        [0, 1],
+                        [1, 1],
+                    ]) {
+                        const px = rect(col + dc, DUCK_SPRITE_HEIGHT + dr);
+                        ctx.fillRect(px.x, px.y + sink, px.w, Math.max(1, Math.round(p * 0.8)));
+                    }
                 }
             }
         }
