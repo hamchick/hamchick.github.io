@@ -717,13 +717,16 @@ export class KoiRenderer {
                 return { x: x0, y: y0, w: Math.max(1, x1 - x0), h };
             };
 
-            // A few short ripples where the body meets the water, either side.
+            // A few short ripples where the body meets the water, either side. The ones behind swell with each push
+            // of the feet, as the water they shove back churns up.
             const wy = Math.round(d.y);
             ctx.fillStyle = this.style(packRgb(palette.water));
             for (const side of [-1, 1]) {
+                const churn = side === -dir && !dabbling ? push * d.beat * 0.35 : 0;
                 for (let k = 0; k < 2; k++) {
                     const wx = cx + side * (W / 2 + 1 + k * 3) * p;
-                    ctx.globalAlpha = (0.4 - k * 0.18) * (0.75 + 0.25 * Math.sin(world.time * 2.3 + k + d.id)) * dim;
+                    const calm = (0.4 - k * 0.18) * (0.75 + 0.25 * Math.sin(world.time * 2.3 + k + d.id));
+                    ctx.globalAlpha = Math.min(1, calm + churn * (1 - k * 0.4)) * dim;
                     ctx.fillRect(side > 0 ? wx : wx - 2 * p, wy, 2 * p, Math.max(1, Math.round(p / 2)));
                 }
             }
@@ -778,34 +781,30 @@ export class KoiRenderer {
                 }
             }
 
-            // Two orange webbed feet just under the belly, drawn over it so they show through the water. They kick
-            // out of step: each sweeps back and a pixel lower on its push, then swings forward again. Through a
-            // glide they trail behind, still.
+            // Two orange feet tucked under the back of the belly, seen faintly through the water. They paddle rather
+            // than step: on the push back a foot spreads its web into a fan, and swings forward again folded into a
+            // thin strip, sweeping smoothly by screen pixels. Through a glide they trail behind, folded and still.
             if (!dabbling) {
-                ctx.globalAlpha = 0.75 * dim;
                 ctx.fillStyle = this.style(packRgb(feet));
                 const reachOfStroke = clamp(d.speed / 30, 0.5, 1);
+                const thick = Math.max(1, Math.round(p * 0.7));
                 for (const [base, phase] of [
                     [5, 1],
-                    [8, -1],
+                    [7, -1],
                 ]) {
                     // Where the foot is in its kick, from -1 (back) to 1 (forward); trailing back when gliding.
-                    const kick = d.beat * stroke * phase * reachOfStroke + (1 - d.beat) * -0.7;
-                    const col = base + Math.round(kick * 2);
-                    // Pushing back while the stroke is falling for this foot.
-                    const pushing = d.beat > 0.3 && Math.cos(d.paddle) * phase < 0;
-                    const sink = pushing ? 1 : 0;
-                    // A small fan: two pixels at the ankle, three across the web, toes pointing back.
-                    for (const [dc, dr] of [
-                        [0, 0],
-                        [1, 0],
-                        [-1, 1],
-                        [0, 1],
-                        [1, 1],
-                    ]) {
-                        const px = rect(col + dc, DUCK_SPRITE_HEIGHT + dr);
-                        ctx.fillRect(px.x, px.y + sink, px.w, Math.max(1, Math.round(p * 0.8)));
-                    }
+                    const kick = d.beat * stroke * phase * reachOfStroke + (1 - d.beat) * -0.8;
+                    // Pushing back while this foot's stroke is falling.
+                    const open = d.beat > 0.3 && Math.cos(d.paddle) * phase < 0;
+                    const ankle = rect(base, DUCK_WATERLINE + 1);
+                    const w = ankle.w;
+                    const fx = ankle.x + Math.round(kick * 1.5 * p) * dir;
+                    const fy = ankle.y;
+                    ctx.globalAlpha = (open ? 0.55 : 0.32) * dim;
+                    ctx.fillRect(fx, fy, w, thick);
+                    // The web: spread three wide behind the ankle on the push, a single strip trailing when folded.
+                    if (open) ctx.fillRect(dir > 0 ? fx - 2 * w : fx, fy + thick, 3 * w, thick);
+                    else ctx.fillRect(fx - dir * w, fy + thick, w, thick);
                 }
             }
         }
