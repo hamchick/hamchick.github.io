@@ -10,7 +10,10 @@ import {
     type DuckPose,
 } from "./duck-shape";
 import {
+    angleDiff,
     clamp,
+    QUACK_LIFE,
+    TRAIL_LIFE,
     type Duck,
     hash3,
     BITE_LIFE,
@@ -52,7 +55,7 @@ interface Palette {
     /** Glyph brightness relative to the tile under it. */
     ink: number;
     /** The white duck's plumage from shadow to lit, its bill, and how strongly its tiles show. */
-    duck: { shade: Rgb; base: Rgb; bill: Rgb; billShade: Rgb; alpha: number; ink: number; rim: number };
+    duck: { shade: Rgb; base: Rgb; bill: Rgb; billShade: Rgb; quack: Rgb; alpha: number; ink: number; rim: number };
 }
 
 const DARK: Palette = {
@@ -78,12 +81,14 @@ const DARK: Palette = {
         [255, 178, 96],
     ],
     ink: 0.42,
+    // Brighter than any koi, with a yellow bill well clear of the koi's red-orange.
     duck: {
-        shade: [118, 120, 136],
-        base: [240, 237, 230],
-        bill: [240, 134, 52],
-        billShade: [168, 80, 30],
-        alpha: 0.9,
+        shade: [128, 130, 146],
+        base: [255, 254, 250],
+        bill: [255, 218, 84],
+        billShade: [226, 162, 40],
+        quack: [255, 210, 80],
+        alpha: 0.96,
         ink: 0.6,
         rim: 0,
     },
@@ -115,13 +120,15 @@ const LIGHT: Palette = {
     ink: 0.45,
     // On paper a white duck would vanish into the page, so it is a pale grey with darker rims.
     duck: {
-        shade: [150, 150, 162],
-        base: [236, 234, 228],
-        bill: [232, 118, 40],
-        billShade: [168, 78, 28],
-        alpha: 0.94,
-        ink: 0.62,
-        rim: 0.35,
+        shade: [138, 138, 152],
+        base: [252, 252, 250],
+        bill: [246, 190, 40],
+        billShade: [204, 138, 20],
+        // Yellow on paper is hard to read, so the quack is a deep amber here.
+        quack: [178, 112, 10],
+        alpha: 1,
+        ink: 0.6,
+        rim: 0.55,
     },
 };
 
@@ -235,6 +242,8 @@ export class KoiRenderer {
     private cellDim = new Float32Array(0);
     /** Cells under a koi's shadow on the pond floor. */
     private cellShadow = new Uint8Array(0);
+    /** Cells of a duck: drawn as solid, butted tiles, so what floats on top reads apart from the koi mosaic below. */
+    private cellSolid = new Uint8Array(0);
 
     private spine = new Float32Array(KOI_NODES * 2);
     private arc = new Float32Array(KOI_NODES);
@@ -282,6 +291,7 @@ export class KoiRenderer {
         this.cellTileAlpha = new Float32Array(n);
         this.cellDim = new Float32Array(n).fill(1);
         this.cellShadow = new Uint8Array(n);
+        this.cellSolid = new Uint8Array(n);
     }
 
     /** Fade koi under these canvas-space boxes, easing back in over a few cells around them. */
@@ -316,6 +326,7 @@ export class KoiRenderer {
         this.cellGlyph.fill(0);
         this.cellTileAlpha.fill(0);
         this.cellShadow.fill(0);
+        this.cellSolid.fill(0);
         // Deeper koi first, so the ones near the surface glide over them.
         for (const k of [...world.koi].sort((a, b) => a.depth - b.depth)) this.rasterizeKoi(k, world.time);
         // Ducks float on the surface, over every koi.
@@ -333,10 +344,12 @@ export class KoiRenderer {
         this.drawShadows();
         this.drawWake();
         this.drawRipples(world);
+        this.drawDuckWakes(world);
         this.drawPellets(world);
         this.drawCells();
         this.drawDuckEyes(world);
         this.drawBites(world);
+        this.drawQuacks(world);
         ctx.globalAlpha = 1;
     }
 
@@ -689,8 +702,9 @@ export class KoiRenderer {
                 if (part === DUCK_BILL) {
                     tile = mix(look.billShade, look.bill, level);
                 } else {
-                    tile = mix(look.shade, look.base, Math.pow(level, 0.8));
-                    if (feathered) tile = shade(tile, 0.9);
+                    // A steep curve, so most of the back is bright white and only the shaded flank greys off.
+                    tile = mix(look.shade, look.base, Math.pow(level, 0.55));
+                    if (feathered) tile = shade(tile, 0.93);
                 }
                 // Rims darken a touch, so the outline holds up against a pale page.
                 if (coverage < 1 && look.rim > 0) tile = mix(tile, look.shade, look.rim);
@@ -699,14 +713,84 @@ export class KoiRenderer {
                 cellTile[i] = packRgb(tile);
                 cellTileAlpha[i] = look.alpha * (coverage < 1 ? 0.3 + 0.7 * coverage : 1);
                 cellGlyph[i] = 32;
+                this.cellSolid[i] = 1;
                 if (feathered && coverage >= 0.6) {
                     const a = d.heading + side * 0.25;
                     cellGlyph[i] = lineGlyph(Math.cos(a), Math.sin(a)).charCodeAt(0);
                     cellColor[i] = packRgb(shade(tile, look.ink));
-                    cellAlpha[i] = 0.45;
+                    cellAlpha[i] = 0.35;
                 }
             }
         }
+    }
+
+    /**
+     * The V a duck draws on the surface: two arms opening back from its chest at the Kelvin angle, laid along the
+     * path it actually swam, so the V bends behind a turning duck. Each point spreads out from the path as it ages.
+     */
+    private drawDuckWakes(world: World) {
+        const { cw, ch, cellGlyph, cellDim, palette } = this;
+        const spread = Math.tan((19.5 * Math.PI) / 180);
+        const step = Math.min(cw, ch) * 0.6;
+        for (const d of world.ducks) {
+            const L = d.length;
+            // The current position closes the path, so the V stays attached to the duck between samples.
+            const now = { x: d.x, y: d.y, heading: d.heading, speed: d.speed, born: world.time };
+            const path = [...d.trail, now];
+            for (let p = path.length - 1; p > 0; p--) {
+                const a = path[p];
+                const b = path[p - 1];
+                const segLen = Math.hypot(a.x - b.x, a.y - b.y);
+                const n = Math.max(1, Math.ceil(segLen / step));
+                for (let k = 0; k < n; k++) {
+                    const f = k / n;
+                    const x = a.x + (b.x - a.x) * f;
+                    const y = a.y + (b.y - a.y) * f;
+                    const heading = a.heading + angleDiff(a.heading, b.heading) * f;
+                    const speed = a.speed + (b.speed - a.speed) * f;
+                    const age = world.time - (a.born + (b.born - a.born) * f);
+                    const life = age / TRAIL_LIFE;
+                    if (life >= 1) continue;
+                    // A slow duck barely marks the water; one paddling for food leaves a clear V.
+                    const strength = clamp(speed / 22, 0.25, 1) * Math.pow(1 - life, 1.4);
+                    // The arms start at the chest, either side of the body, and open out behind.
+                    const half = L * 0.3 + speed * age * spread;
+                    const cos = Math.cos(heading);
+                    const sin = Math.sin(heading);
+                    const cx = x + cos * L * 0.2;
+                    const cy = y + sin * L * 0.2;
+                    for (const side of [-1, 1]) {
+                        const px = cx - sin * half * side;
+                        const py = cy + cos * half * side;
+                        const i = this.cellIndex(px, py);
+                        if (i < 0 || cellGlyph[i]) continue;
+                        // Each arm runs back and outward from the duck.
+                        const ax = -cos - sin * spread * side;
+                        const ay = -sin + cos * spread * side;
+                        this.glyphAt(i, lineGlyph(ax, ay), palette.water, 0.42 * strength * cellDim[i]);
+                    }
+                }
+            }
+        }
+    }
+
+    /** "quack" floats up off the duck in the bill's colour and fades. */
+    private drawQuacks(world: World) {
+        const { ctx, ch, cellDim, palette } = this;
+        if (world.quacks.length === 0) return;
+        ctx.font = `700 ${Math.round(ch * 1.05)}px ${this.fontFamily}`;
+        ctx.fillStyle = this.style(packRgb(palette.duck.quack));
+        for (const q of world.quacks) {
+            const t = (world.time - q.born) / QUACK_LIFE;
+            const y = q.y - t * 26;
+            const i = this.cellIndex(q.x, y);
+            // Under page text a quack fades less than a koi does: it is a small word, easily lost.
+            const dim = i >= 0 ? 0.4 + 0.6 * cellDim[i] : 1;
+            // A quick pop in, a long hold, then a fade as it rises.
+            ctx.globalAlpha = Math.min(1, t * 10) * (1 - smoothstep(0.7, 1, t)) * dim;
+            ctx.fillText(q.text, q.x, y);
+        }
+        ctx.font = `600 ${Math.round(ch * 0.72)}px ${this.fontFamily}`;
     }
 
     /** Eyes are small round dots placed exactly, turning with the head; they slip under on a deep dip. */
@@ -747,7 +831,8 @@ export class KoiRenderer {
             if (cellTileAlpha[i] > 0) {
                 ctx.globalAlpha = cellTileAlpha[i] * cellDim[i];
                 ctx.fillStyle = this.style(cellTile[i]);
-                ctx.fillRect(x + 1, y + 1, cw - 1, ch - 1);
+                if (this.cellSolid[i]) ctx.fillRect(x, y, cw, ch);
+                else ctx.fillRect(x + 1, y + 1, cw - 1, ch - 1);
             }
             if (code === 32) continue;
             ctx.globalAlpha = cellAlpha[i] * cellDim[i];
@@ -765,11 +850,6 @@ export class KoiRenderer {
                 const i = this.cellIndex(k.nodes[n * 2], k.nodes[n * 2 + 1]);
                 if (i >= 0) energy[i] = Math.min(1.5, energy[i] + 0.035 + k.speed * 0.0012);
             }
-        }
-        // Paddling feet trail a faint wake behind each duck.
-        for (const d of world.ducks) {
-            const i = this.cellIndex(d.x - Math.cos(d.heading) * d.length * 0.55, d.y - Math.sin(d.heading) * d.length * 0.55);
-            if (i >= 0) energy[i] = Math.min(1.5, energy[i] + 0.02 + d.speed * 0.003);
         }
         if (world.pointer.active) {
             const i = this.cellIndex(world.pointer.x, world.pointer.y);

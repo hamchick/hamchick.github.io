@@ -9,13 +9,17 @@ export const DUCK_BILL = 5;
 
 type Ellipse = { u: number; v: number; a: number; b: number };
 
-/** A duck seen from above, in fractions of its length: `u` forward from the middle, `v` to its right. */
+/**
+ * A duck seen from above, in fractions of its length: `u` forward from the middle, `v` to its right.
+ * A plump, round body and a round head held clear of it on a short neck: nothing like a koi's long taper.
+ */
 export const DUCK = {
-    body: { u: -0.07, v: 0, a: 0.41, b: 0.25 },
-    head: { u: 0.31, v: 0, a: 0.155, b: 0.13 },
-    bill: { u: 0.48, v: 0, a: 0.1, b: 0.065 },
-    wing: { u: -0.13, v: 0.1, a: 0.28, b: 0.1 },
-    eye: { u: 0.35, v: 0.085 },
+    body: { u: -0.08, v: 0, a: 0.37, b: 0.29 },
+    neck: { u: 0.24, v: 0, a: 0.1, b: 0.085 },
+    head: { u: 0.37, v: 0, a: 0.135, b: 0.125 },
+    bill: { u: 0.53, v: 0, a: 0.095, b: 0.06 },
+    wing: { u: -0.14, v: 0.12, a: 0.26, b: 0.11 },
+    eye: { u: 0.4, v: 0.08 },
 };
 
 // Light from the upper left and a little above, the same side the koi are lit from.
@@ -87,6 +91,13 @@ export function classifyDuck(u: number, v: number, pose: DuckPose, out: DuckHit)
         out.lum = lum;
         return true;
     }
+    // The neck sits a little lower than the head and back, so it reads as a slight crease between them.
+    lum = dome(DUCK.neck, u, v, pose);
+    if (lum >= 0) {
+        out.part = DUCK_HEAD;
+        out.lum = lum * 0.8;
+        return true;
+    }
     lum = dome(DUCK.body, u, v, pose, 0.35);
     if (lum >= 0) {
         const w = DUCK.wing;
@@ -97,8 +108,8 @@ export function classifyDuck(u: number, v: number, pose: DuckPose, out: DuckHit)
         return true;
     }
     // A short wedge of tail feathers.
-    if (u < -0.38 && u > -0.6) {
-        const half = 0.13 * ((u + 0.6) / 0.22);
+    if (u < -0.38 && u > -0.58) {
+        const half = 0.14 * ((u + 0.58) / 0.2);
         if (Math.abs(v) < half) {
             out.part = DUCK_TAIL;
             out.lum = 0.35 - (v / half) * 0.15;
