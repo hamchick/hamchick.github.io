@@ -104,6 +104,10 @@ export interface Duck {
     speed: number;
     /** 1 facing right, -1 facing left: the side-on sprite can only face one way or the other. */
     facing: number;
+    /** When it last turned to face the other way, so the sprite can flip over rather than snap. */
+    flipAt: number;
+    /** Phase of the paddling feet; the body bobs and the head nods in time with it. */
+    paddle: number;
     wander: number;
     /** 1 when the duck has decided to go for food, fading as it loses interest or fills up. */
     keen: number;
@@ -200,6 +204,8 @@ const DUCK_APPETITE = 0.4;
 /** A pellet landing this close, in duck lengths, gets a duck's attention anyway. */
 const DUCK_NOTICE = 2.2;
 const DUCK_RANGE = 460;
+/** How long a duck takes to turn round and face the other way. */
+export const DUCK_FLIP_TIME = 0.28;
 /** How long a dabble lasts: tipping forward, head under, and back up. */
 export const DUCK_DIP_TIME = 1.4;
 /** How long a wake stays on the water behind a duck, and how often its path is sampled. */
@@ -299,6 +305,8 @@ export class World {
                 heading,
                 speed: 8,
                 facing: Math.cos(heading) >= 0 ? 1 : -1,
+                flipAt: -Infinity,
+                paddle: rand(0, TAU),
                 wander: 0,
                 keen: 0,
                 food: null,
@@ -660,12 +668,17 @@ export class World {
         d.heading += turned;
         // Flip only once clearly headed the other way, so a duck paddling up or down the screen doesn't flicker.
         const across = Math.cos(d.heading);
-        if (across > 0.3) d.facing = 1;
-        else if (across < -0.3) d.facing = -1;
+        const facing = across > 0.3 ? 1 : across < -0.3 ? -1 : d.facing;
+        if (facing !== d.facing) {
+            d.facing = facing;
+            d.flipAt = time;
+        }
 
         // A duck caught under text paddles out briskly instead of idling there.
         const target = food ? 30 + L * 0.12 : 10 + L * 0.05 + crowded * 22;
         d.speed += (target - d.speed) * Math.min(1, dt * (food ? 1.2 : 0.5));
+        // Unhurried strokes while drifting, quickening as it paddles over for food.
+        d.paddle += dt * (2.2 + d.speed * 0.14);
         d.x += Math.cos(d.heading) * d.speed * dt;
         d.y += Math.sin(d.heading) * d.speed * dt;
 

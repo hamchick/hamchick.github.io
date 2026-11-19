@@ -10,6 +10,7 @@ import {
 import {
     angleDiff,
     clamp,
+    DUCK_FLIP_TIME,
     QUACK_LIFE,
     TRAIL_LIFE,
     hash3,
@@ -641,52 +642,82 @@ export class KoiRenderer {
 
     /**
      * Each duck as a crisp pixel sprite, side-on, on a grid of its own much finer than the pond's tiles, so it stays
-     * legible at a small size. It bobs a screen pixel on the swell and switches to a tail-up frame to dabble; what sits
-     * below the waterline shows faintly through the water, and an outline keeps it clear against koi and a pale page.
+     * legible at a small size. It moves like it is paddling: feet stroking under the water, the body lifting a pixel
+     * with each stroke, the head nodding and the tail flicking in time, and it flips over when it turns round. It
+     * switches to a tail-up frame to dabble. What sits below the waterline shows faintly through the water, and a
+     * thin outline keeps it clear against koi and a pale page.
      */
     private drawDucks(world: World) {
         const { ctx, palette, cellDim } = this;
         const look = palette.duck;
         const W = DUCK_SPRITE_WIDTH;
+        const outline = this.style(packRgb(look.outline));
+        const feet = mix(look.bill, palette.bg, 0.45);
 
         for (const d of world.ducks) {
             const p = d.pixel;
-            const frame = d.dip > 0.3 ? DUCK_DABBLE : DUCK_SPRITE;
+            const line = Math.max(1, Math.round(p / 4));
+            const dabbling = d.dip > 0.3;
+            const frame = dabbling ? DUCK_DABBLE : DUCK_SPRITE;
             const anchor = this.cellIndex(d.x, d.y);
             const dim = anchor >= 0 ? cellDim[anchor] : 1;
-            // Whole screen pixels, so the sprite's pixels land crisply; the bob moves the whole sprite at once.
-            const ox = Math.round(d.x - (W / 2) * p);
-            const oy = Math.round(d.y - DUCK_WATERLINE * p + Math.sin(world.time * 1.8 + d.id * 2.1));
-            // Sprite column `c` lands at screen column `col(c)`, mirrored when the duck faces left.
-            const col = (c: number) => (d.facing > 0 ? c : W - 1 - c);
             const at = (c: number, r: number) => duckPixel(frame, c, r) !== ".";
 
+            // Paddling: a lazy stroke while drifting, a full one when it hurries over for food.
+            const effort = clamp(d.speed / 30, 0.4, 1);
+            const stroke = Math.sin(d.paddle);
+            // Turning round: the sprite narrows, then opens out facing the other way.
+            const flipT = (world.time - d.flipAt) / DUCK_FLIP_TIME;
+            const squeeze = flipT < 1 ? Math.max(0.2, Math.abs(Math.cos(Math.PI * flipT))) : 1;
+            const dir = flipT < 0.5 ? -d.facing : d.facing;
+            const pw = p * squeeze;
+            const cx = Math.round(d.x);
+            // The body lifts a screen pixel with each stroke of either foot.
+            const top = Math.round(d.y - DUCK_WATERLINE * p - Math.max(0, Math.sin(d.paddle * 2)) * effort);
+            // The head nods forward on the stroke and the tail flicks after it, a screen pixel each.
+            const nod = dabbling ? 0 : Math.round(stroke * effort) * dir;
+            const flick = dabbling ? 0 : Math.round(Math.sin(d.paddle + 1.2) * effort);
+
+            // Where sprite pixel (c, r) lands on screen: mirrored to face left, narrowed while turning, and nudged
+            // by the nod (head, top right of the sprite) or the flick (tail, top left).
+            const rect = (c: number, r: number) => {
+                const left = cx + (dir > 0 ? c - W / 2 : W / 2 - 1 - c) * pw;
+                const x0 = Math.round(left) + (r <= 4 && c >= 8 ? nod : 0);
+                const x1 = Math.round(left + pw) + (r <= 4 && c >= 8 ? nod : 0);
+                const y0 = top + r * p + (c <= 1 && r <= 6 ? flick : 0);
+                return { x: x0, y: y0, w: Math.max(1, x1 - x0) };
+            };
+
             // A few short ripples where the body meets the water, either side.
-            const oxMid = Math.round(d.x);
             const wy = Math.round(d.y);
             ctx.fillStyle = this.style(packRgb(palette.water));
             for (const side of [-1, 1]) {
                 for (let k = 0; k < 2; k++) {
-                    const wx = oxMid + side * (W / 2 + 1 + k * 3) * p;
+                    const wx = cx + side * (W / 2 + 1 + k * 3) * p;
                     ctx.globalAlpha = (0.4 - k * 0.18) * (0.75 + 0.25 * Math.sin(world.time * 2.3 + k + d.id)) * dim;
                     ctx.fillRect(side > 0 ? wx : wx - 2 * p, wy, 2 * p, Math.max(1, Math.round(p / 2)));
                 }
             }
 
-            for (let r = -1; r <= DUCK_SPRITE_HEIGHT; r++) {
-                for (let c = -1; c <= W; c++) {
+            // Two orange feet under the water, stroking back and forth out of step with each other.
+            if (!dabbling) {
+                ctx.globalAlpha = 0.45 * dim;
+                ctx.fillStyle = this.style(packRgb(feet));
+                for (const [base, phase] of [
+                    [5, 1],
+                    [9, -1],
+                ]) {
+                    const r = rect(base + Math.round(stroke * phase * 1.5 * effort), DUCK_SPRITE_HEIGHT);
+                    ctx.fillRect(r.x, r.y, r.w * 2, Math.max(1, Math.round(p * 0.75)));
+                }
+            }
+
+            for (let r = 0; r < frame.length; r++) {
+                for (let c = 0; c < W; c++) {
                     const px = duckPixel(frame, c, r);
-                    const sx = ox + col(c) * p;
-                    const sy = oy + r * p;
+                    if (px === ".") continue;
+                    const { x: sx, y: sy, w } = rect(c, r);
                     const under = r >= DUCK_WATERLINE;
-                    if (px === ".") {
-                        // The outline: an empty pixel touching the duck, above the water.
-                        if (under || !(at(c - 1, r) || at(c + 1, r) || at(c, r - 1) || at(c, r + 1))) continue;
-                        ctx.globalAlpha = look.outlineAlpha * dim;
-                        ctx.fillStyle = this.style(packRgb(look.outline));
-                        ctx.fillRect(sx, sy, p, p);
-                        continue;
-                    }
                     // Plumage is lit from above: brightest on the crown and back, greying toward the water.
                     const lit = clamp(1 - r / DUCK_WATERLINE, 0, 1);
                     let rgb: Rgb;
@@ -717,7 +748,17 @@ export class KoiRenderer {
                     }
                     ctx.globalAlpha = alpha;
                     ctx.fillStyle = this.style(packRgb(rgb));
-                    ctx.fillRect(sx, sy, p, p);
+                    ctx.fillRect(sx, sy, w, p);
+
+                    // A hairline outline on each open side of the pixel, above the water only.
+                    if (under) continue;
+                    ctx.globalAlpha = look.outlineAlpha * dim;
+                    ctx.fillStyle = outline;
+                    const toRight = dir > 0;
+                    if (!at(c - 1, r)) ctx.fillRect(toRight ? sx - line : sx + w, sy, line, p);
+                    if (!at(c + 1, r)) ctx.fillRect(toRight ? sx + w : sx - line, sy, line, p);
+                    if (!at(c, r - 1)) ctx.fillRect(sx, sy - line, w, line);
+                    if (!at(c, r + 1) && r + 1 < DUCK_WATERLINE) ctx.fillRect(sx, sy + p, w, line);
                 }
             }
         }
