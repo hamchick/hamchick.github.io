@@ -1,3 +1,5 @@
+import { DUCK_SPRITE_WIDTH } from "./duck-shape";
+
 export const TAU = Math.PI * 2;
 export const KOI_NODES = 20;
 export const RIPPLE_SPEED = 52;
@@ -85,21 +87,38 @@ export interface Koi {
     gulp: number;
 }
 
-/** A white duck floating on the surface: a bystander that drifts about and now and then joins in at feeding time. */
+/** Which way round the duckling is seen: side-on, three-quarters toward the viewer, or three-quarters away. */
+export type DuckView = "side" | "front" | "back";
+
+/**
+ * A yellow duckling floating on the surface: a bystander that drifts about and now and then joins in at feeding
+ * time. It moves across the pond like the koi, but is drawn as pixel art seen from the side, turning to show its
+ * face or its back as it swims down or up the screen. (x, y) is where it meets the water, under its middle.
+ */
 export interface Duck {
     id: number;
     x: number;
     y: number;
+    /** Size of one sprite pixel, in screen pixels. */
+    pixel: number;
+    /** Sprite width in screen pixels. */
     length: number;
     heading: number;
     speed: number;
-    /** Smoothed angular velocity, which curves the body into turns. */
+    /** Smoothed rate of turning, so the head can lead into a turn and the tail trail after it. */
     turn: number;
+    /** 1 facing right, -1 facing left; the front and back views lean one way or the other too. */
+    facing: number;
+    view: DuckView;
+    /** When it last turned to face the other way, so the sprite can flip over rather than snap. */
+    flipAt: number;
+    /** Phase of the paddling feet; each foot's push is a surge forward, and the body bobs and nods in time. */
+    paddle: number;
+    /** 0 gliding with the feet still, 1 paddling; eased, so strokes fade in and out. */
+    beat: number;
+    paddleUntil: number;
+    nextPaddle: number;
     wander: number;
-    /** Head turned on the neck, easing toward `lookTarget`. */
-    look: number;
-    lookTarget: number;
-    nextLook: number;
     /** 1 when the duck has decided to go for food, fading as it loses interest or fills up. */
     keen: number;
     food: Pellet | null;
@@ -107,6 +126,26 @@ export interface Duck {
     dip: number;
     dipAt: number;
     nextDip: number;
+    /** Where the duck has been lately, oldest first, for drawing the V of its wake. */
+    trail: TrailPoint[];
+    nextTrail: number;
+    nextQuack: number;
+}
+
+export interface TrailPoint {
+    x: number;
+    y: number;
+    heading: number;
+    speed: number;
+    born: number;
+}
+
+/** A little "quack" that floats up off a duck and fades. */
+export interface Quack {
+    x: number;
+    y: number;
+    born: number;
+    text: string;
 }
 
 export interface Pellet {
@@ -170,14 +209,31 @@ export const PELLET_SINK = 9;
 const THROW_RADIUS = 34;
 const STARTLE_SPEED = 1100;
 const MAX_PELLETS = 24;
-/** The ducks are still being worked on (see the ducks-v2 branch), so the live pond is koi only for now. */
-const DUCKS_ENABLED = false;
 /** Chance that a duck joins in when food is thrown. */
 const DUCK_APPETITE = 0.4;
 /** A pellet landing this close, in duck lengths, gets a duck's attention anyway. */
 const DUCK_NOTICE = 2.2;
 const DUCK_RANGE = 460;
-export const DUCK_DIP_TIME = 0.9;
+/** How long a duck takes to turn round and face the other way. */
+export const DUCK_FLIP_TIME = 0.28;
+/** How long a dabble lasts: tipping forward, head under, and back up. */
+export const DUCK_DIP_TIME = 1.4;
+/** How long a wake stays on the water behind a duck, and how often its path is sampled. */
+export const TRAIL_LIFE = 6;
+const TRAIL_EVERY = 0.2;
+export const QUACK_LIFE = 2.4;
+/** Chance of a quack on each pellet a duck takes. */
+const QUACK_ON_FOOD = 0.5;
+/** How fast a gliding duck loses speed, per second. */
+const DUCK_DRAG = 1.3;
+/** Average of a foot's push over a stroke, max(0, sin) averaged: scales the push so speed settles where intended. */
+const STROKE_MEAN = 1 / Math.PI;
+/**
+ * Ducks keep mostly to left and right, the way the side-on sprite faces: they steer with vertical pulls weakened,
+ * and cover ground up and down the screen more slowly, as on a pond seen from a low angle.
+ */
+const DUCK_STEER_VERTICAL = 0.85;
+const DUCK_VERTICAL_SPEED = 0.8;
 
 export class World {
     width = 0;
@@ -185,6 +241,7 @@ export class World {
     time = 0;
     koi: Koi[] = [];
     ducks: Duck[] = [];
+    quacks: Quack[] = [];
     pellets: Pellet[] = [];
     bites: Bite[] = [];
     /** Moving the mouse to throw food isn't a threat, so swipes don't startle koi for a moment after a throw. */
@@ -255,28 +312,39 @@ export class World {
 
         // One duck, or a pair on wide screens, small beside the grown koi so they stay in the background.
         this.ducks = [];
-        const duckLength = clamp(baseLength * 0.3, 60, 112);
-        const duckCount = DUCKS_ENABLED ? (W >= 1024 ? 2 : 1) : 0;
-        for (let i = 0; i < duckCount; i++) {
+        // Whole screen pixels per sprite pixel keep the pixel art crisp: a duckling about 42px wide.
+        const pixel = 3;
+        for (let i = 0; i < (W >= 1024 ? 2 : 1); i++) {
+            const heading = rand(0, TAU);
             this.ducks.push({
                 id: i + 1,
                 x: rand(W * 0.15, W * 0.85),
                 y: rand(H * 0.15, H * 0.85),
-                length: duckLength * rand(0.92, 1.05),
-                heading: rand(0, TAU),
+                pixel,
+                length: DUCK_SPRITE_WIDTH * pixel,
+                heading,
                 speed: 8,
                 turn: 0,
+                facing: Math.cos(heading) >= 0 ? 1 : -1,
+                view: "side",
+                flipAt: -Infinity,
+                paddle: rand(0, TAU),
+                beat: 0,
+                paddleUntil: 0,
+                nextPaddle: rand(0, 2),
                 wander: 0,
-                look: 0,
-                lookTarget: 0,
-                nextLook: rand(2, 6),
                 keen: 0,
                 food: null,
                 dip: 0,
                 dipAt: -Infinity,
                 nextDip: rand(6, 16),
+                trail: [],
+                nextTrail: 0,
+                // The first quack comes early, so a visitor finds out there are ducks before long.
+                nextQuack: rand(3, 8) + i * 4,
             });
         }
+        this.placeDucks();
     }
 
     /** A loose handful thrown at (x, y): each pellet lands a beat apart with its own splash, then drifts and sinks. */
@@ -302,23 +370,54 @@ export class World {
         }
     }
 
-    /** Move any duck sitting under page content to open water. Called once the content has first been measured. */
+    /**
+     * How much open water a duck would have at (x, y): positive when it sits clear of the page text, of every koi's
+     * body and of the other ducks, negative by how far it overlaps the nearest of them.
+     */
+    private duckRoom(d: Duck, x: number, y: number) {
+        const L = d.length;
+        // Head clear of the top of the screen, where the site header sits.
+        let room = y - L * 1.8;
+        for (const b of this.avoid) {
+            room = Math.min(room, Math.max(b.left - x, x - b.right, b.top - y, y - b.bottom) - L);
+        }
+        for (const k of this.koi) {
+            for (let n = 0; n < KOI_NODES; n += 2) {
+                const gap = Math.hypot(k.nodes[n * 2] - x, k.nodes[n * 2 + 1] - y);
+                room = Math.min(room, gap - (L * 0.6 + k.length * 0.2));
+            }
+        }
+        for (const o of this.ducks) {
+            if (o !== d) room = Math.min(room, Math.hypot(o.x - x, o.y - y) - (L + o.length) * 1.2);
+        }
+        return room;
+    }
+
+    /**
+     * Start each duck in open water, off the text and not on top of a koi or the other duck. Run at seeding and
+     * again once the content has first been measured. Where nowhere is fully clear, as on a small phone screen,
+     * a duck takes the roomiest spot it found.
+     */
     placeDucks() {
         const { width: W, height: H } = this;
         for (const d of this.ducks) {
-            const clear = (x: number, y: number) =>
-                this.avoid.every(
-                    (b) => x < b.left - d.length || x > b.right + d.length || y < b.top - d.length || y > b.bottom + d.length
-                );
-            if (clear(d.x, d.y)) continue;
-            for (let tries = 0; tries < 40; tries++) {
+            let best = this.duckRoom(d, d.x, d.y);
+            if (best > 0) continue;
+            let bestX = d.x;
+            let bestY = d.y;
+            for (let tries = 0; tries < 60 && best <= 0; tries++) {
                 const x = rand(W * 0.1, W * 0.9);
                 const y = rand(H * 0.12, H * 0.88);
-                if (!clear(x, y)) continue;
-                d.x = x;
-                d.y = y;
-                break;
+                const room = this.duckRoom(d, x, y);
+                if (room > best) {
+                    best = room;
+                    bestX = x;
+                    bestY = y;
+                }
             }
+            d.x = bestX;
+            d.y = bestY;
+            d.trail = [];
         }
     }
 
@@ -352,6 +451,7 @@ export class World {
         }
         this.ripples = this.ripples.filter((r) => t - r.born < rippleLife(r));
         this.bites = this.bites.filter((b) => t - b.born < BITE_LIFE);
+        this.quacks = this.quacks.filter((q) => t - q.born < QUACK_LIFE);
     }
 
     private stepKoi(k: Koi, dt: number) {
@@ -537,8 +637,9 @@ export class World {
         const L = d.length;
         const cos = Math.cos(d.heading);
         const sin = Math.sin(d.heading);
-        const billX = d.x + cos * L * 0.55;
-        const billY = d.y + sin * L * 0.55;
+        // The bill is at the front of the side-on sprite, where its tip meets the water when the duck dabbles.
+        const billX = d.x + d.facing * L * 0.45;
+        const billY = d.y;
 
         let dx = cos;
         let dy = sin;
@@ -563,7 +664,7 @@ export class World {
             const oy = d.y - other.y;
             const dist = Math.hypot(ox, oy) || 1;
             // Room to paddle, but the pair never wanders far apart.
-            const room = (L + other.length) * 1.3;
+            const room = (L + other.length) * 0.8;
             if (dist < room) {
                 dx += (ox / dist) * (1 - dist / room) * 2.5;
                 dy += (oy / dist) * (1 - dist / room) * 2.5;
@@ -583,24 +684,44 @@ export class World {
         // which on most layouts is where the text sits.
         const edge = (dist: number) => clamp(1 - dist / (L * 1.6), 0, 1) * 3;
         dx += edge(d.x) - edge(W - d.x);
-        dy += edge(d.y) - edge(H - d.y);
+        // The side-on sprite stands up off the waterline, so the top edge counts from its head, which keeps it
+        // out from under the site header too.
+        dy += edge(d.y - L) - edge(H - d.y);
 
-        const maxTurn = (food ? 1.8 : 0.55) * dt;
-        const turned = clamp(angleDiff(d.heading, Math.atan2(dy, dx)), -maxTurn, maxTurn);
+        const maxTurn = (food ? 1.8 : 0.4) * dt;
+        const turned = clamp(angleDiff(d.heading, Math.atan2(dy * DUCK_STEER_VERTICAL, dx)), -maxTurn, maxTurn);
         d.heading += turned;
-        d.turn += (turned / dt - d.turn) * Math.min(1, dt * 2.5);
-
-        // A duck caught under text paddles out briskly instead of idling there.
-        const target = food ? 30 + L * 0.12 : 7 + L * 0.04 + crowded * 22;
-        d.speed += (target - d.speed) * Math.min(1, dt * (food ? 1.2 : 0.5));
-        d.x += Math.cos(d.heading) * d.speed * dt;
-        d.y += Math.sin(d.heading) * d.speed * dt;
-
-        if (time > d.nextLook) {
-            d.lookTarget = rand(-0.45, 0.45);
-            d.nextLook = time + rand(1.5, 5);
+        d.turn += (turned / dt - d.turn) * Math.min(1, dt * 4);
+        // Flip only once clearly headed the other way, so a duck paddling up or down the screen doesn't flicker.
+        const across = Math.cos(d.heading);
+        const facing = across > 0.3 ? 1 : across < -0.3 ? -1 : d.facing;
+        if (facing !== d.facing) {
+            d.facing = facing;
+            d.flipAt = time;
         }
-        d.look += ((food ? 0 : d.lookTarget) - d.look) * Math.min(1, dt * 3);
+        // Swimming down the screen it turns its face to the viewer, up the screen its back; with some slack
+        // between, so it doesn't flicker from one view to the next on a diagonal.
+        const down = Math.sin(d.heading);
+        if (down > 0.6) d.view = "front";
+        else if (down < -0.6) d.view = "back";
+        else if (Math.abs(down) < 0.45) d.view = "side";
+
+        // Paddle and glide: a few strokes, then a glide that bleeds off speed with the feet still. A duck going for
+        // food, or caught under text, paddles without a break.
+        if (time > d.nextPaddle && time > d.paddleUntil) {
+            d.paddleUntil = time + rand(1.2, 2.6);
+            d.nextPaddle = d.paddleUntil + rand(1.5, 4);
+        }
+        const paddling = food !== null || crowded > 0.2 || time < d.paddleUntil;
+        d.beat += ((paddling ? 1 : 0) - d.beat) * Math.min(1, dt * 4);
+        // The speed it settles at while paddling, and how quick the strokes come.
+        const target = food ? 30 + L * 0.12 : 12 + L * 0.05 + crowded * 22;
+        if (paddling) d.paddle += dt * (food ? 9 : 5.5 + crowded * 3);
+        // Each foot's push back is a surge forward; between pushes, and through a glide, drag bleeds speed away.
+        const thrust = Math.max(0, Math.sin(d.paddle * 2)) * d.beat;
+        d.speed = Math.max(0, d.speed + (thrust * (target / STROKE_MEAN) - d.speed) * DUCK_DRAG * dt);
+        d.x += Math.cos(d.heading) * d.speed * dt;
+        d.y += Math.sin(d.heading) * d.speed * DUCK_VERTICAL_SPEED * dt;
 
         // Only floating pellets: once they sink they're the koi's.
         const reach = L * 0.12 + 6;
@@ -617,6 +738,7 @@ export class World {
             d.keen -= 0.35;
             d.dipAt = time;
             d.nextDip = time + rand(6, 14);
+            if (Math.random() < QUACK_ON_FOOD) this.quack(d, Math.random() < 0.3 ? "quack quack!" : "quack!");
         } else if (!food && time > d.nextDip) {
             // Now and then, while idling, the duck dabbles at the surface.
             d.dipAt = time;
@@ -625,6 +747,26 @@ export class World {
         }
         const dipAge = time - d.dipAt;
         d.dip = dipAge < DUCK_DIP_TIME ? Math.sin((Math.PI * dipAge) / DUCK_DIP_TIME) : 0;
+
+        // Left to itself, a duck quacks once in a long while.
+        if (time > d.nextQuack) this.quack(d, "quack");
+
+        if (time > d.nextTrail) {
+            d.trail.push({ x: d.x, y: d.y, heading: d.heading, speed: d.speed, born: time });
+            d.nextTrail = time + TRAIL_EVERY;
+        }
+        while (d.trail.length > 0 && time - d.trail[0].born > TRAIL_LIFE) d.trail.shift();
+    }
+
+    private quack(d: Duck, text: string) {
+        // Rising from just above the head, nudged so two quacks in a row don't stack on each other.
+        this.quacks.push({
+            x: d.x + d.facing * d.length * 0.3 + rand(-6, 6),
+            y: d.y - d.length * 0.95,
+            born: this.time,
+            text,
+        });
+        d.nextQuack = this.time + rand(25, 55);
     }
 
     /** The nearest floating pellet in reach of the bill, sticking with the current one while it lasts. */

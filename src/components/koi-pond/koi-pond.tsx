@@ -26,6 +26,7 @@ const INTERACTIVE = "a, button, input, textarea, select, label, summary, [role='
 // Content over the pond carries this attribute; koi steer around it and fade beneath it.
 const AVOID_TARGETS = "[data-pond-avoid]";
 // Re-measure the content boxes this often, in frames, to follow layout shifts and entrance animations.
+// Scrolling moves them every frame, so a scroll also asks for a fresh measure on the next frame.
 const MEASURE_EVERY_FRAMES = 30;
 // Content boxes closer than this merge, so koi aren't squeezed into the slot between them.
 const MERGE_GAP_PX = 160;
@@ -59,6 +60,9 @@ class PondEngine {
     private visible = true;
     private disposed = false;
     private ducksPlaced = false;
+    /** Set by a scroll: the content has moved, so the dim mask and the koi's no-go boxes are stale. */
+    private contentMoved = false;
+    private stillFrame = 0;
     private reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
     private resizeObserver = new ResizeObserver(() => this.resize());
     private intersectionObserver = new IntersectionObserver(([entry]) => {
@@ -75,6 +79,7 @@ class PondEngine {
         this.intersectionObserver.observe(canvas);
         this.reducedMotion.addEventListener("change", this.schedule);
         window.addEventListener("pointermove", this.onPointerMove, { passive: true });
+        window.addEventListener("scroll", this.onScroll, { passive: true });
         window.addEventListener("click", this.onClick);
         document.documentElement.addEventListener("pointerleave", this.onPointerLeave);
         window.addEventListener("blur", this.onPointerLeave);
@@ -85,6 +90,8 @@ class PondEngine {
     destroy() {
         this.disposed = true;
         cancelAnimationFrame(this.raf);
+        cancelAnimationFrame(this.stillFrame);
+        window.removeEventListener("scroll", this.onScroll);
         this.resizeObserver.disconnect();
         this.intersectionObserver.disconnect();
         this.reducedMotion.removeEventListener("change", this.schedule);
@@ -161,7 +168,11 @@ class PondEngine {
             steps++;
         }
         if (steps === MAX_STEPS) this.acc = 0;
-        if (++this.frames % MEASURE_EVERY_FRAMES === 0) this.measureContent();
+        // Measured before drawing, so the dim mask lines up with where the text is in this very frame.
+        if (++this.frames % MEASURE_EVERY_FRAMES === 0 || this.contentMoved) {
+            this.contentMoved = false;
+            this.measureContent();
+        }
         this.renderer.render(this.world, dt);
         this.report();
         this.raf = requestAnimationFrame(this.frame);
@@ -207,6 +218,18 @@ class PondEngine {
         if (!inside) return;
         this.world.feed(x, y);
         this.report();
+    };
+
+    // The pond is fixed but the page scrolls over it, so the content boxes move with every scroll.
+    private onScroll = () => {
+        this.contentMoved = true;
+        // With reduced motion there's no frame loop to pick that up, so redraw the still frame once per frame.
+        if (this.reducedMotion.matches && !this.stillFrame) {
+            this.stillFrame = requestAnimationFrame(() => {
+                this.stillFrame = 0;
+                this.drawStill();
+            });
+        }
     };
 
     private onPointerLeave = () => {
