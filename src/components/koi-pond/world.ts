@@ -106,8 +106,12 @@ export interface Duck {
     facing: number;
     /** When it last turned to face the other way, so the sprite can flip over rather than snap. */
     flipAt: number;
-    /** Phase of the paddling feet; the body bobs and the head nods in time with it. */
+    /** Phase of the paddling feet; each foot's push is a surge forward, and the body bobs and nods in time. */
     paddle: number;
+    /** 0 gliding with the feet still, 1 paddling; eased, so strokes fade in and out. */
+    beat: number;
+    paddleUntil: number;
+    nextPaddle: number;
     wander: number;
     /** 1 when the duck has decided to go for food, fading as it loses interest or fills up. */
     keen: number;
@@ -214,6 +218,16 @@ const TRAIL_EVERY = 0.2;
 export const QUACK_LIFE = 2.4;
 /** Chance of a quack on each pellet a duck takes. */
 const QUACK_ON_FOOD = 0.5;
+/** How fast a gliding duck loses speed, per second. */
+const DUCK_DRAG = 1.3;
+/** Average of a foot's push over a stroke, max(0, sin) averaged: scales the push so speed settles where intended. */
+const STROKE_MEAN = 1 / Math.PI;
+/**
+ * Ducks keep mostly to left and right, the way the side-on sprite faces: they steer with vertical pulls weakened,
+ * and cover ground up and down the screen more slowly, as on a pond seen from a low angle.
+ */
+const DUCK_STEER_VERTICAL = 0.7;
+const DUCK_VERTICAL_SPEED = 0.6;
 
 export class World {
     width = 0;
@@ -307,6 +321,9 @@ export class World {
                 facing: Math.cos(heading) >= 0 ? 1 : -1,
                 flipAt: -Infinity,
                 paddle: rand(0, TAU),
+                beat: 0,
+                paddleUntil: 0,
+                nextPaddle: rand(0, 2),
                 wander: 0,
                 keen: 0,
                 food: null,
@@ -664,7 +681,7 @@ export class World {
         dy += edge(d.y - L) - edge(H - d.y);
 
         const maxTurn = (food ? 1.8 : 0.4) * dt;
-        const turned = clamp(angleDiff(d.heading, Math.atan2(dy, dx)), -maxTurn, maxTurn);
+        const turned = clamp(angleDiff(d.heading, Math.atan2(dy * DUCK_STEER_VERTICAL, dx)), -maxTurn, maxTurn);
         d.heading += turned;
         // Flip only once clearly headed the other way, so a duck paddling up or down the screen doesn't flicker.
         const across = Math.cos(d.heading);
@@ -674,13 +691,22 @@ export class World {
             d.flipAt = time;
         }
 
-        // A duck caught under text paddles out briskly instead of idling there.
-        const target = food ? 30 + L * 0.12 : 10 + L * 0.05 + crowded * 22;
-        d.speed += (target - d.speed) * Math.min(1, dt * (food ? 1.2 : 0.5));
-        // Unhurried strokes while drifting, quickening as it paddles over for food.
-        d.paddle += dt * (2.2 + d.speed * 0.14);
+        // Paddle and glide: a few strokes, then a glide that bleeds off speed with the feet still. A duck going for
+        // food, or caught under text, paddles without a break.
+        if (time > d.nextPaddle && time > d.paddleUntil) {
+            d.paddleUntil = time + rand(1.2, 2.6);
+            d.nextPaddle = d.paddleUntil + rand(1.5, 4);
+        }
+        const paddling = food !== null || crowded > 0.2 || time < d.paddleUntil;
+        d.beat += ((paddling ? 1 : 0) - d.beat) * Math.min(1, dt * 4);
+        // The speed it settles at while paddling, and how quick the strokes come.
+        const target = food ? 30 + L * 0.12 : 12 + L * 0.05 + crowded * 22;
+        if (paddling) d.paddle += dt * (food ? 9 : 5.5 + crowded * 3);
+        // Each foot's push back is a surge forward; between pushes, and through a glide, drag bleeds speed away.
+        const thrust = Math.max(0, Math.sin(d.paddle * 2)) * d.beat;
+        d.speed = Math.max(0, d.speed + (thrust * (target / STROKE_MEAN) - d.speed) * DUCK_DRAG * dt);
         d.x += Math.cos(d.heading) * d.speed * dt;
-        d.y += Math.sin(d.heading) * d.speed * dt;
+        d.y += Math.sin(d.heading) * d.speed * DUCK_VERTICAL_SPEED * dt;
 
         // Only floating pellets: once they sink they're the koi's.
         const reach = L * 0.12 + 6;

@@ -663,8 +663,9 @@ export class KoiRenderer {
             const dim = anchor >= 0 ? cellDim[anchor] : 1;
             const at = (c: number, r: number) => duckPixel(frame, c, r) !== ".";
 
-            // Paddling: a lazy stroke while drifting, a full one when it hurries over for food.
-            const effort = clamp(d.speed / 30, 0.4, 1);
+            // Paddling: a lazy stroke while drifting, a full one when it hurries over for food, and none at all
+            // through a glide, when the feet hang still and the body rides level.
+            const effort = clamp(d.speed / 30, 0.4, 1) * d.beat;
             const stroke = Math.sin(d.paddle);
             // Turning round: the sprite narrows, then opens out facing the other way.
             const flipT = (world.time - d.flipAt) / DUCK_FLIP_TIME;
@@ -672,8 +673,12 @@ export class KoiRenderer {
             const dir = flipT < 0.5 ? -d.facing : d.facing;
             const pw = p * squeeze;
             const cx = Math.round(d.x);
-            // The body lifts a screen pixel with each stroke of either foot.
-            const top = Math.round(d.y - DUCK_WATERLINE * p - Math.max(0, Math.sin(d.paddle * 2)) * effort);
+            // The body lifts a screen pixel with each stroke of either foot, and rides the swell slowly when it
+            // glides, so even a duck at rest still floats rather than sits.
+            const swell = Math.sin(world.time * 1.3 + d.id * 2.1) * 0.7 * (1 - d.beat);
+            const top = Math.round(
+                d.y - DUCK_WATERLINE * p - Math.max(0, Math.sin(d.paddle * 2)) * effort + swell
+            );
             // The head nods forward on the stroke and the tail flicks after it, a screen pixel each.
             const nod = dabbling ? 0 : Math.round(stroke * effort) * dir;
             const flick = dabbling ? 0 : Math.round(Math.sin(d.paddle + 1.2) * effort);
