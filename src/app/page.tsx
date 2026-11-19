@@ -92,13 +92,13 @@ export default function Home() {
         <section className="mx-auto flex min-h-[calc(100svh-3.5rem)] max-w-5xl items-end px-4 pb-16 sm:items-center sm:px-6 sm:pb-0">
           <Reveal>
             <div data-pond-avoid className="max-w-2xl">
-              <p className="mb-2 font-mono text-xs text-muted sm:mb-4 sm:text-sm">Hi, I&apos;m</p>
-              <h1 className="text-4xl font-semibold tracking-tight sm:text-7xl">{profile.name}</h1>
-              <p className="mt-3 text-lg leading-snug text-muted sm:mt-5 sm:text-3xl">
+              <p className="mb-2 font-mono text-xs text-muted sm:mb-3 sm:text-sm">Hi, I&apos;m</p>
+              <h1 className="text-4xl font-semibold tracking-tight sm:text-6xl">{profile.name}</h1>
+              <p className="mt-3 text-lg leading-snug text-muted sm:mt-4 sm:text-2xl">
                 CS × Economics, into <RotatingWord words={profile.focus} />
               </p>
-              <p className="mt-3 max-w-xl text-sm leading-relaxed sm:mt-6 sm:text-lg">{profile.intro}</p>
-              <div className="mt-5 flex flex-wrap gap-3 sm:mt-8">
+              <p className="mt-3 max-w-lg text-sm leading-relaxed sm:mt-5 sm:text-base">{profile.intro}</p>
+              <div className="mt-5 flex flex-wrap gap-3 sm:mt-7">
                 <a href="#projects" className="rounded-full bg-ink px-5 py-2.5 text-sm font-medium text-bg transition hover:opacity-85">
                   See my work
                 </a>
