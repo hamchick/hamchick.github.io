@@ -85,17 +85,20 @@ export default function Home() {
       </header>
 
       <main id="top">
-        {/* Hero: mostly open water so the ducks have room. */}
-        <section className="mx-auto flex min-h-[calc(100svh-3.5rem)] max-w-5xl items-center px-4 sm:px-6">
+        {/*
+          Hero: mostly open water. On phones the text spans the full width, so it sits low and compact,
+          leaving the top of the first screen as one clear stretch of pond; wider screens keep it centred.
+        */}
+        <section className="mx-auto flex min-h-[calc(100svh-3.5rem)] max-w-5xl items-end px-4 pb-16 sm:items-center sm:px-6 sm:pb-0">
           <Reveal>
             <div data-pond-avoid className="max-w-2xl">
-              <p className="mb-4 font-mono text-sm text-muted">Hi, I&apos;m</p>
-              <h1 className="text-5xl font-semibold tracking-tight sm:text-7xl">{profile.name}</h1>
-              <p className="mt-5 text-2xl leading-snug text-muted sm:text-3xl">
+              <p className="mb-2 font-mono text-xs text-muted sm:mb-4 sm:text-sm">Hi, I&apos;m</p>
+              <h1 className="text-4xl font-semibold tracking-tight sm:text-7xl">{profile.name}</h1>
+              <p className="mt-3 text-lg leading-snug text-muted sm:mt-5 sm:text-3xl">
                 CS × Economics, into <RotatingWord words={profile.focus} />
               </p>
-              <p className="mt-6 max-w-xl text-base leading-relaxed sm:text-lg">{profile.intro}</p>
-              <div className="mt-8 flex flex-wrap gap-3">
+              <p className="mt-3 max-w-xl text-sm leading-relaxed sm:mt-6 sm:text-lg">{profile.intro}</p>
+              <div className="mt-5 flex flex-wrap gap-3 sm:mt-8">
                 <a href="#projects" className="rounded-full bg-ink px-5 py-2.5 text-sm font-medium text-bg transition hover:opacity-85">
                   See my work
                 </a>
