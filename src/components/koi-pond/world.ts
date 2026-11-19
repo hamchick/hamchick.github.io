@@ -170,6 +170,8 @@ export const PELLET_SINK = 9;
 const THROW_RADIUS = 34;
 const STARTLE_SPEED = 1100;
 const MAX_PELLETS = 24;
+/** The ducks are still being worked on (see the ducks-v2 branch), so the live pond is koi only for now. */
+const DUCKS_ENABLED = false;
 /** Chance that a duck joins in when food is thrown. */
 const DUCK_APPETITE = 0.4;
 /** A pellet landing this close, in duck lengths, gets a duck's attention anyway. */
@@ -254,7 +256,8 @@ export class World {
         // One duck, or a pair on wide screens, small beside the grown koi so they stay in the background.
         this.ducks = [];
         const duckLength = clamp(baseLength * 0.3, 60, 112);
-        for (let i = 0; i < (W >= 1024 ? 2 : 1); i++) {
+        const duckCount = DUCKS_ENABLED ? (W >= 1024 ? 2 : 1) : 0;
+        for (let i = 0; i < duckCount; i++) {
             this.ducks.push({
                 id: i + 1,
                 x: rand(W * 0.15, W * 0.85),
