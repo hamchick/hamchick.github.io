@@ -1,5 +1,3 @@
-import { DUCK_SPRITE_WIDTH } from "./duck-shape";
-
 export const TAU = Math.PI * 2;
 export const KOI_NODES = 20;
 export const RIPPLE_SPEED = 52;
@@ -89,16 +87,14 @@ export interface Koi {
 
 /**
  * A white duck floating on the surface: a bystander that drifts about and now and then joins in at feeding time.
- * It moves across the pond like the koi, but is drawn side-on as a pixel sprite, which reads as a duck at a glance.
+ * It moves across the pond like the koi, but is drawn side-on, which reads as a duck at a glance.
  * (x, y) is where it meets the water, under the middle of its body.
  */
 export interface Duck {
     id: number;
     x: number;
     y: number;
-    /** Size of one sprite pixel, in screen pixels. */
-    pixel: number;
-    /** Sprite width in screen pixels. */
+    /** Tail tip to bill tip, in screen pixels. */
     length: number;
     heading: number;
     speed: number;
@@ -306,16 +302,15 @@ export class World {
 
         // One duck, or a pair on wide screens, small beside the grown koi so they stay in the background.
         this.ducks = [];
-        // Whole screen pixels per sprite pixel keep the pixel art crisp: about 64px wide on a desktop, 48px on a phone.
-        const pixel = clamp(Math.round(baseLength / 100), 3, 4);
+        // Small beside the grown koi: about 80px long on a desktop, 50px on a phone.
+        const duckLength = clamp(baseLength * 0.2, 50, 80);
         for (let i = 0; i < (W >= 1024 ? 2 : 1); i++) {
             const heading = rand(0, TAU);
             this.ducks.push({
                 id: i + 1,
                 x: rand(W * 0.15, W * 0.85),
                 y: rand(H * 0.15, H * 0.85),
-                pixel,
-                length: DUCK_SPRITE_WIDTH * pixel,
+                length: duckLength,
                 heading,
                 speed: 8,
                 facing: Math.cos(heading) >= 0 ? 1 : -1,
@@ -630,7 +625,7 @@ export class World {
         const cos = Math.cos(d.heading);
         const sin = Math.sin(d.heading);
         // The bill is at the front of the side-on sprite, where its tip meets the water when the duck dabbles.
-        const billX = d.x + d.facing * L * 0.45;
+        const billX = d.x + d.facing * L * 0.5;
         const billY = d.y;
 
         let dx = cos;
@@ -747,7 +742,7 @@ export class World {
         // Rising from just above the head, nudged so two quacks in a row don't stack on each other.
         this.quacks.push({
             x: d.x + d.facing * d.length * 0.3 + rand(-6, 6),
-            y: d.y - d.length * 0.95,
+            y: d.y - d.length * 0.75,
             born: this.time,
             text,
         });
