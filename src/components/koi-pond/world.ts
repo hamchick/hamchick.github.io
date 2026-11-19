@@ -305,6 +305,7 @@ export class World {
                 nextQuack: rand(3, 8) + i * 4,
             });
         }
+        this.placeDucks();
     }
 
     /** A loose handful thrown at (x, y): each pellet lands a beat apart with its own splash, then drifts and sinks. */
@@ -330,24 +331,53 @@ export class World {
         }
     }
 
-    /** Move any duck sitting under page content to open water. Called once the content has first been measured. */
+    /**
+     * How much open water a duck would have at (x, y): positive when it sits clear of the page text, of every koi's
+     * body and of the other ducks, negative by how far it overlaps the nearest of them.
+     */
+    private duckRoom(d: Duck, x: number, y: number) {
+        const L = d.length;
+        let room = Infinity;
+        for (const b of this.avoid) {
+            room = Math.min(room, Math.max(b.left - x, x - b.right, b.top - y, y - b.bottom) - L);
+        }
+        for (const k of this.koi) {
+            for (let n = 0; n < KOI_NODES; n += 2) {
+                const gap = Math.hypot(k.nodes[n * 2] - x, k.nodes[n * 2 + 1] - y);
+                room = Math.min(room, gap - (L * 0.6 + k.length * 0.2));
+            }
+        }
+        for (const o of this.ducks) {
+            if (o !== d) room = Math.min(room, Math.hypot(o.x - x, o.y - y) - (L + o.length) * 1.2);
+        }
+        return room;
+    }
+
+    /**
+     * Start each duck in open water, off the text and not on top of a koi or the other duck. Run at seeding and
+     * again once the content has first been measured. Where nowhere is fully clear, as on a small phone screen,
+     * a duck takes the roomiest spot it found.
+     */
     placeDucks() {
         const { width: W, height: H } = this;
         for (const d of this.ducks) {
-            const clear = (x: number, y: number) =>
-                this.avoid.every(
-                    (b) => x < b.left - d.length || x > b.right + d.length || y < b.top - d.length || y > b.bottom + d.length
-                );
-            if (clear(d.x, d.y)) continue;
-            for (let tries = 0; tries < 40; tries++) {
+            let best = this.duckRoom(d, d.x, d.y);
+            if (best > 0) continue;
+            let bestX = d.x;
+            let bestY = d.y;
+            for (let tries = 0; tries < 60 && best <= 0; tries++) {
                 const x = rand(W * 0.1, W * 0.9);
                 const y = rand(H * 0.12, H * 0.88);
-                if (!clear(x, y)) continue;
-                d.x = x;
-                d.y = y;
-                d.trail = [];
-                break;
+                const room = this.duckRoom(d, x, y);
+                if (room > best) {
+                    best = room;
+                    bestX = x;
+                    bestY = y;
+                }
             }
+            d.x = bestX;
+            d.y = bestY;
+            d.trail = [];
         }
     }
 
