@@ -1,12 +1,11 @@
 import { bodyHalfWidth, classify, FLAG_BARBEL, FLAG_EYE, FLAG_FIN, type ShapeHit } from "./shape";
 import {
-    classifyDuck,
-    DUCK_BILL,
-    DUCK_EYE,
-    DUCK_FOOT,
-    DUCK_WING,
-    type DuckHit,
-    type DuckPose,
+    DUCK_DABBLE,
+    DUCK_SPRITE,
+    DUCK_SPRITE_HEIGHT,
+    DUCK_SPRITE_WIDTH,
+    DUCK_WATERLINE,
+    duckPixel,
 } from "./duck-shape";
 import {
     angleDiff,
@@ -53,8 +52,17 @@ interface Palette {
     hi: Rgb[];
     /** Glyph brightness relative to the tile under it. */
     ink: number;
-    /** The duck's bill and feet, and its quack. Its plumage is the koi's white, in the same tiles and glyphs. */
-    duck: { bill: Rgb; quack: Rgb };
+    /** The white duck's plumage from shadow to lit, its bill, the outline that keeps it crisp, and its quack. */
+    duck: {
+        shade: Rgb;
+        base: Rgb;
+        bill: Rgb;
+        billShade: Rgb;
+        outline: Rgb;
+        outlineAlpha: number;
+        quack: Rgb;
+        alpha: number;
+    };
 }
 
 const DARK: Palette = {
@@ -80,8 +88,18 @@ const DARK: Palette = {
         [255, 178, 96],
     ],
     ink: 0.42,
-    // A yellow bill, well clear of the koi's red-orange.
-    duck: { bill: [250, 196, 70], quack: [255, 210, 80] },
+    // Brighter than any koi, with a yellow bill well clear of the koi's red-orange.
+    duck: {
+        shade: [128, 130, 146],
+        base: [255, 254, 250],
+        bill: [255, 204, 64],
+        billShade: [214, 146, 30],
+        // A near-black edge, which shows wherever the duck crosses a koi.
+        outline: [8, 8, 12],
+        outlineAlpha: 0.75,
+        quack: [255, 210, 80],
+        alpha: 1,
+    },
 };
 
 // Paper page: tiles are pale washes of the skin colour with dark glyphs etched on top.
@@ -108,8 +126,18 @@ const LIGHT: Palette = {
         [248, 176, 116],
     ],
     ink: 0.45,
-    // Yellow on paper is hard to read, so the quack is a deep amber here.
-    duck: { bill: [226, 160, 30], quack: [178, 112, 10] },
+    // On paper a white duck would vanish into the page; the dark outline is what carries it here.
+    duck: {
+        shade: [150, 150, 164],
+        base: [255, 255, 255],
+        bill: [246, 186, 36],
+        billShade: [200, 132, 18],
+        outline: [52, 52, 62],
+        outlineAlpha: 0.85,
+        // Yellow on paper is hard to read, so the quack is a deep amber here.
+        quack: [178, 112, 10],
+        alpha: 1,
+    },
 };
 
 // Dense glyphs etched into each skin tile, sparse where it catches the light.
@@ -231,8 +259,6 @@ export class KoiRenderer {
     private hitTx = 1;
     private hitTy = 0;
     private hitSeg = 0;
-    private duckHit: DuckHit = { part: 0, lum: 0 };
-    private duckPose: DuckPose = { nod: 0, flick: 0, footA: 0, footB: 0, lightU: -0.4 };
 
     constructor(canvas: HTMLCanvasElement) {
         const ctx = canvas.getContext("2d");
@@ -615,140 +641,132 @@ export class KoiRenderer {
     // ── ducks ───────────────────────────────────────────────────────────
 
     /**
-     * Each duck in the koi's own material: gapped tiles washed in the koi's white, etched with the same glyphs, dense
-     * in shadow and sparse where lit, with soft part-covered edges and no outline. It is drawn side-on, on a grid
-     * about half the koi's so its silhouette reads at a small size. It paddles (feet stroking under the water, the
-     * body lifting with each stroke, head nodding and tail flicking), narrows and opens out when it turns round, and
-     * tips forward to dabble. What sits below the waterline shows faintly through the water.
+     * Each duck as a crisp pixel sprite, side-on, on a grid of its own much finer than the pond's tiles, so it stays
+     * legible at a small size. It moves like it is paddling: feet stroking under the water, the body lifting a pixel
+     * with each stroke, the head nodding and the tail flicking in time, and it flips over when it turns round. It
+     * switches to a tail-up frame to dabble. What sits below the waterline shows faintly through the water, and a
+     * thin outline keeps it clear against koi and a pale page.
      */
     private drawDucks(world: World) {
         const { ctx, palette, cellDim } = this;
-        const [tile0, tile1] = palette.tile;
-        // The duck's own tile grid, fixed to the screen like the pond's so tiles don't crawl as it moves.
-        const dw = Math.max(4, Math.round(this.cw * 0.5));
-        const dh = dw + 1;
-        const hit = this.duckHit;
-        const pose = this.duckPose;
-        ctx.font = `600 ${Math.max(5, Math.round(dh * 0.85))}px ${this.fontFamily}`;
+        const look = palette.duck;
+        const W = DUCK_SPRITE_WIDTH;
+        const outline = this.style(packRgb(look.outline));
+        const feet = mix(look.bill, palette.bg, 0.45);
 
         for (const d of world.ducks) {
-            const L = d.length;
+            const p = d.pixel;
+            const line = Math.max(1, Math.round(p / 4));
+            const dabbling = d.dip > 0.3;
+            const frame = dabbling ? DUCK_DABBLE : DUCK_SPRITE;
             const anchor = this.cellIndex(d.x, d.y);
             const dim = anchor >= 0 ? cellDim[anchor] : 1;
-            const alpha = palette.alpha * dim;
+            const at = (c: number, r: number) => duckPixel(frame, c, r) !== ".";
 
             // Paddling: a lazy stroke while drifting, a full one when it hurries over for food, and none at all
             // through a glide, when the feet hang still and the body rides level.
             const effort = clamp(d.speed / 30, 0.4, 1) * d.beat;
             const stroke = Math.sin(d.paddle);
-            // Turning round: the body narrows, then opens out facing the other way.
+            // Turning round: the sprite narrows, then opens out facing the other way.
             const flipT = (world.time - d.flipAt) / DUCK_FLIP_TIME;
             const squeeze = flipT < 1 ? Math.max(0.2, Math.abs(Math.cos(Math.PI * flipT))) : 1;
             const dir = flipT < 0.5 ? -d.facing : d.facing;
-            // The body lifts with each stroke of either foot, and rides a slow swell when it glides.
-            const lift =
-                Math.max(0, Math.sin(d.paddle * 2)) * effort * 1.5 +
-                Math.sin(world.time * 1.3 + d.id * 2.1) * 0.8 * (1 - d.beat);
-            // Tipping forward to dabble, and rocking a touch with the stroke.
-            const tilt = d.dip * 0.95 + stroke * effort * 0.03;
-            const cos = Math.cos(tilt);
-            const sin = Math.sin(tilt);
-            pose.nod = d.dip > 0.3 ? 0 : stroke * effort * 0.025;
-            pose.flick = d.dip > 0.3 ? 0 : Math.sin(d.paddle + 1.2) * effort * 0.03;
-            pose.footA = stroke * effort * 0.07;
-            pose.footB = -pose.footA;
-            pose.lightU = -0.4 * dir;
+            const pw = p * squeeze;
+            const cx = Math.round(d.x);
+            // The body lifts a screen pixel with each stroke of either foot, and rides the swell slowly when it
+            // glides, so even a duck at rest still floats rather than sits.
+            const swell = Math.sin(world.time * 1.3 + d.id * 2.1) * 0.7 * (1 - d.beat);
+            const top = Math.round(
+                d.y - DUCK_WATERLINE * p - Math.max(0, Math.sin(d.paddle * 2)) * effort + swell
+            );
+            // The head nods forward on the stroke and the tail flicks after it, a screen pixel each.
+            const nod = dabbling ? 0 : Math.round(stroke * effort) * dir;
+            const flick = dabbling ? 0 : Math.round(Math.sin(d.paddle + 1.2) * effort);
 
-            // Where the waterline crosses this duck's tiles, and the body's origin on it.
-            const waterY = d.y;
-            const ox = d.x;
-            const oy = d.y - lift;
-            const toBody = (sx: number, sy: number) => {
-                const pu = ((sx - ox) / (L * squeeze)) * dir;
-                const pv = (oy - sy) / L;
-                return { u: pu * cos - pv * sin, v: pu * sin + pv * cos };
+            // Where sprite pixel (c, r) lands on screen: mirrored to face left, narrowed while turning, and nudged
+            // by the nod (head, top right of the sprite) or the flick (tail, top left).
+            const rect = (c: number, r: number) => {
+                const left = cx + (dir > 0 ? c - W / 2 : W / 2 - 1 - c) * pw;
+                const x0 = Math.round(left) + (r <= 4 && c >= 8 ? nod : 0);
+                const x1 = Math.round(left + pw) + (r <= 4 && c >= 8 ? nod : 0);
+                const y0 = top + r * p + (c <= 1 && r <= 6 ? flick : 0);
+                return { x: x0, y: y0, w: Math.max(1, x1 - x0) };
             };
 
-            const R = L * 0.62 + dw;
-            const c0 = Math.floor((ox - R) / dw);
-            const c1 = Math.floor((ox + R) / dw);
-            const r0 = Math.floor((oy - L * 0.7) / dh);
-            const r1 = Math.floor((oy + L * 0.3) / dh);
-
-            // A few short ripples on the water either side of the body, as glyphs like the pond's own.
+            // A few short ripples where the body meets the water, either side.
+            const wy = Math.round(d.y);
             ctx.fillStyle = this.style(packRgb(palette.water));
             for (const side of [-1, 1]) {
                 for (let k = 0; k < 2; k++) {
-                    ctx.globalAlpha = (0.45 - k * 0.2) * (0.75 + 0.25 * Math.sin(world.time * 2.3 + k + d.id)) * dim;
-                    ctx.fillText("-", ox + side * (L * 0.48 + (k + 0.5) * dw * 1.4), waterY);
+                    const wx = cx + side * (W / 2 + 1 + k * 3) * p;
+                    ctx.globalAlpha = (0.4 - k * 0.18) * (0.75 + 0.25 * Math.sin(world.time * 2.3 + k + d.id)) * dim;
+                    ctx.fillRect(side > 0 ? wx : wx - 2 * p, wy, 2 * p, Math.max(1, Math.round(p / 2)));
                 }
             }
 
-            for (let r = r0; r <= r1; r++) {
-                for (let c = c0; c <= c1; c++) {
-                    const x = c * dw;
-                    const y = r * dh;
-                    // The centre decides the part; it and the corners together decide how much of the tile is covered.
-                    const centre = toBody(x + dw / 2, y + dh / 2);
-                    let covered = classifyDuck(centre.u, centre.v, pose, hit) ? 1 : 0;
-                    let part = hit.part;
-                    let lum = hit.lum;
-                    for (let q = 0; q < SUBSAMPLES.length; q += 2) {
-                        const s = toBody(x + SUBSAMPLES[q] * dw, y + SUBSAMPLES[q + 1] * dh);
-                        if (!classifyDuck(s.u, s.v, pose, hit)) continue;
-                        if (covered === 0) {
-                            part = hit.part;
-                            lum = hit.lum;
-                        }
-                        covered++;
+            // Two orange feet under the water, stroking back and forth out of step with each other.
+            if (!dabbling) {
+                ctx.globalAlpha = 0.45 * dim;
+                ctx.fillStyle = this.style(packRgb(feet));
+                for (const [base, phase] of [
+                    [5, 1],
+                    [9, -1],
+                ]) {
+                    const r = rect(base + Math.round(stroke * phase * 1.5 * effort), DUCK_SPRITE_HEIGHT);
+                    ctx.fillRect(r.x, r.y, r.w * 2, Math.max(1, Math.round(p * 0.75)));
+                }
+            }
+
+            for (let r = 0; r < frame.length; r++) {
+                for (let c = 0; c < W; c++) {
+                    const px = duckPixel(frame, c, r);
+                    if (px === ".") continue;
+                    const { x: sx, y: sy, w } = rect(c, r);
+                    const under = r >= DUCK_WATERLINE;
+                    // Plumage is lit from above: brightest on the crown and back, greying toward the water.
+                    const lit = clamp(1 - r / DUCK_WATERLINE, 0, 1);
+                    let rgb: Rgb;
+                    switch (px) {
+                        case "B":
+                            rgb = look.bill;
+                            break;
+                        case "b":
+                            rgb = look.billShade;
+                            break;
+                        case "E":
+                            rgb = palette.eye;
+                            break;
+                        case "G":
+                            rgb = mix(look.shade, look.base, 0.55 + 0.25 * lit);
+                            break;
+                        case "S":
+                            rgb = mix(look.shade, look.base, 0.3);
+                            break;
+                        default:
+                            rgb = mix(look.shade, look.base, 0.62 + 0.38 * lit);
                     }
-                    if (covered === 0) continue;
-                    const coverage = covered / 5;
-                    const under = y + dh / 2 > waterY;
+                    let alpha = look.alpha * dim;
                     // Below the waterline the duck shows only faintly, through the water.
-                    const depth = under ? 0.3 : 1;
-
-                    let tile: Rgb;
-                    let glyph = " ";
-                    let ink: Rgb = palette.eye;
-                    let inkAlpha = alpha * depth;
-                    if (part === DUCK_EYE) {
-                        tile = mix(palette.bg, palette.eye, 0.85);
-                        glyph = "o";
-                        ink = mix(palette.bg, palette.white, 0.9);
-                    } else {
-                        const colour = part === DUCK_BILL || part === DUCK_FOOT ? palette.duck.bill : palette.white;
-                        // Feathers are a shade darker than the breast and back, which brings out the folded wing.
-                        const shadeLum = part === DUCK_WING ? lum * 0.8 : lum;
-                        tile = mix(palette.bg, colour, tile0 + (tile1 - tile0) * shadeLum);
-                        ink = shade(tile, palette.ink);
-                        if (part === DUCK_WING) {
-                            // Feather lines sweeping back along the wing.
-                            glyph = lineGlyph(-dir, 0.3);
-                            inkAlpha *= 0.7;
-                        } else {
-                            // Body-anchored, so each glyph rides along with the plumage as the duck moves.
-                            const key = (hash3(Math.round(centre.u * 40), Math.round(centre.v * 40), d.id) * 7) | 0;
-                            glyph = TILE_GLYPHS[clamp(Math.round((1 - lum) * 4) + (key % 3), 0, TILE_GLYPHS.length - 1)];
-                            // White plumage is etched lightly, as on the koi.
-                            if (colour === palette.white) inkAlpha *= 0.6;
-                        }
+                    if (under) {
+                        rgb = mix(rgb, palette.bg, 0.5);
+                        alpha *= 0.35;
                     }
-                    // Edge tiles are pale and bare, so the outline is soft, like the koi's.
-                    const solid = coverage >= 0.6;
-                    const tileAlpha = alpha * depth * (solid ? 1 : 0.25 + 0.55 * coverage);
+                    ctx.globalAlpha = alpha;
+                    ctx.fillStyle = this.style(packRgb(rgb));
+                    ctx.fillRect(sx, sy, w, p);
 
-                    ctx.globalAlpha = tileAlpha;
-                    ctx.fillStyle = this.style(packRgb(tile));
-                    ctx.fillRect(x + 1, y + 1, dw - 1, dh - 1);
-                    if (!solid || glyph === " ") continue;
-                    ctx.globalAlpha = inkAlpha;
-                    ctx.fillStyle = this.style(packRgb(ink));
-                    ctx.fillText(glyph, x + dw / 2, y + dh / 2 + 1);
+                    // A hairline outline on each open side of the pixel, above the water only.
+                    if (under) continue;
+                    ctx.globalAlpha = look.outlineAlpha * dim;
+                    ctx.fillStyle = outline;
+                    const toRight = dir > 0;
+                    if (!at(c - 1, r)) ctx.fillRect(toRight ? sx - line : sx + w, sy, line, p);
+                    if (!at(c + 1, r)) ctx.fillRect(toRight ? sx + w : sx - line, sy, line, p);
+                    if (!at(c, r - 1)) ctx.fillRect(sx, sy - line, w, line);
+                    if (!at(c, r + 1) && r + 1 < DUCK_WATERLINE) ctx.fillRect(sx, sy + p, w, line);
                 }
             }
         }
-        ctx.font = `600 ${Math.round(this.ch * 0.72)}px ${this.fontFamily}`;
     }
 
     /**
