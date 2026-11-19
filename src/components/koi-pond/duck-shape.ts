@@ -1,54 +1,88 @@
 /**
- * The duck, side-on and facing right, as pixel art. A side view is what makes a duck read as a duck at a glance:
- * round head, flat bill, tail cocked up. It stays legible down to a few dozen screen pixels, where a duck seen
- * from above is just an oval.
+ * A yellow duckling as pixel art, facing right: big round head, a plump fluffy body, a stub of a tail and a small
+ * bill. It has a frame for each way it can be seen as it swims about the pond, so turning reads as the duckling
+ * turning round on the water rather than a picture sliding about:
  *
- *   W  plumage, lit from above
- *   G  folded wing
+ *   SIDE    swimming left or right
+ *   FRONT   three-quarters toward the viewer, swimming down the screen: both eyes and the bill show
+ *   BACK    three-quarters away, swimming up the screen: the back of the head, the bill just peeking out
+ *   DABBLE  tipped forward, tail to the sky and head under, for feeding (a frame of its own, since rotating
+ *           pixel art leaves it ragged)
+ *
+ *   W  down, lit from above        B  bill, with b its shaded underside
+ *   G  folded wing                 E  eye
  *   S  underside, in shadow
- *   B  bill, with b its shaded underside
- *   E  eye
  */
-export const DUCK_SPRITE = [
-    ".........WWWW...",
-    "........WWWWWW..",
-    "........WWWWEWBB",
-    "........WWWWWWbb",
-    ".........WWWWW..",
-    "W.........WWW...",
-    "WW.......WWWW...",
-    "WWWWWWWWWWWWWW..",
-    "WWWWWWGGGGWWWWW.",
-    "WWWWGGGGGGGWWWW.",
-    ".WWWWGGGGGWWWWW.",
-    "..SWWWWWWWWWWS..",
-    "...SSSSSSSSSS...",
+export const DUCK_SIDE = [
+    "........WWW...",
+    ".......WWWWW..",
+    "......WWWWEWBB",
+    "......WWWWWWbb",
+    ".......WWWWW..",
+    "W.....WWWWWW..",
+    "WW..WWWWWWWW..",
+    "WWWWWWGGGWWWW.",
+    "WWWWWGGGGGWWW.",
+    ".WWWWWGGGWWWW.",
+    "..SWWWWWWWWWS.",
+    "...SSSSSSSSS..",
 ];
 
-/**
- * Dabbling: tipped forward, tail to the sky and head under. A frame of its own rather than the sprite rotated,
- * since rotating pixel art leaves it ragged.
- */
+export const DUCK_FRONT = [
+    "......WWWW....",
+    ".....WWWWWW...",
+    ".....WEWWEW...",
+    ".....WWBBWW...",
+    "......WbbW....",
+    "W....WWWWWW...",
+    "WW..WWWWWWWW..",
+    "WWWWWGGWWWWWW.",
+    ".WWWGGGWWWWWW.",
+    "..WWWGGWWWWWW.",
+    "...SWWWWWWWS..",
+    "....SSSSSSS...",
+];
+
+export const DUCK_BACK = [
+    ".......WWW....",
+    "......WWWWW...",
+    "......WWWWWB..",
+    "......WWWWW...",
+    ".......WWW....",
+    "WW....WWWW....",
+    "WWW.WWWWWWW...",
+    "WWWWWGGGWWWW..",
+    "WWWWGGGGGWWW..",
+    ".WWWWGGGWWWW..",
+    "..SWWWWWWWWS..",
+    "...SSSSSSSS...",
+];
+
 export const DUCK_DABBLE = [
-    "................",
-    "..W.............",
-    "..WW............",
-    "..WWW...........",
-    "...WWWW.........",
-    "...WWWWWW.......",
-    "....WWGGGGW.....",
-    "....WWWGGGGWW...",
-    ".....WWWGGGWWWW.",
-    "......WWWWWWWWWW",
-    ".......SWWWWWWWW",
-    "........SSSWWWWW",
-    "...........WWbBB",
+    "..............",
+    ".W............",
+    ".WW...........",
+    ".WWWW.........",
+    "..WWWWW.......",
+    "..WWWGGGW.....",
+    "...WWGGGGWW...",
+    "...WWWGGGWWW..",
+    "....WWWWWWWWW.",
+    ".....SWWWWWWWW",
+    "......SSWWWWWW",
+    ".........WWWbB",
 ];
 
-export const DUCK_SPRITE_WIDTH = DUCK_SPRITE[0].length;
-export const DUCK_SPRITE_HEIGHT = DUCK_SPRITE.length;
-/** Rows from here down sit below the waterline, in both frames. */
-export const DUCK_WATERLINE = 11;
+export const DUCK_SPRITE_WIDTH = DUCK_SIDE[0].length;
+export const DUCK_SPRITE_HEIGHT = DUCK_SIDE.length;
+/** Rows from here down sit below the waterline, in every frame. */
+export const DUCK_WATERLINE = 10;
+/** The head: the top rows, from this column forward. It reaches and nods while the duckling paddles. */
+export const DUCK_HEAD_ROWS = 5;
+export const DUCK_HEAD_FROM = 5;
+/** The tail tuft: the top-left columns, which flick and lag behind in turns. */
+export const DUCK_TAIL_COLS = 2;
+export const DUCK_TAIL_ROWS = 7;
 
 /** The pixel at (col, row) of a frame, or "." when outside it. */
 export function duckPixel(frame: string[], col: number, row: number) {

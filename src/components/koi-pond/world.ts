@@ -87,10 +87,13 @@ export interface Koi {
     gulp: number;
 }
 
+/** Which way round the duckling is seen: side-on, three-quarters toward the viewer, or three-quarters away. */
+export type DuckView = "side" | "front" | "back";
+
 /**
- * A white duck floating on the surface: a bystander that drifts about and now and then joins in at feeding time.
- * It moves across the pond like the koi, but is drawn side-on as a pixel sprite, which reads as a duck at a glance.
- * (x, y) is where it meets the water, under the middle of its body.
+ * A yellow duckling floating on the surface: a bystander that drifts about and now and then joins in at feeding
+ * time. It moves across the pond like the koi, but is drawn as pixel art seen from the side, turning to show its
+ * face or its back as it swims down or up the screen. (x, y) is where it meets the water, under its middle.
  */
 export interface Duck {
     id: number;
@@ -102,8 +105,11 @@ export interface Duck {
     length: number;
     heading: number;
     speed: number;
-    /** 1 facing right, -1 facing left: the side-on sprite can only face one way or the other. */
+    /** Smoothed rate of turning, so the head can lead into a turn and the tail trail after it. */
+    turn: number;
+    /** 1 facing right, -1 facing left; the front and back views lean one way or the other too. */
     facing: number;
+    view: DuckView;
     /** When it last turned to face the other way, so the sprite can flip over rather than snap. */
     flipAt: number;
     /** Phase of the paddling feet; each foot's push is a surge forward, and the body bobs and nods in time. */
@@ -226,8 +232,8 @@ const STROKE_MEAN = 1 / Math.PI;
  * Ducks keep mostly to left and right, the way the side-on sprite faces: they steer with vertical pulls weakened,
  * and cover ground up and down the screen more slowly, as on a pond seen from a low angle.
  */
-const DUCK_STEER_VERTICAL = 0.7;
-const DUCK_VERTICAL_SPEED = 0.6;
+const DUCK_STEER_VERTICAL = 0.85;
+const DUCK_VERTICAL_SPEED = 0.8;
 
 export class World {
     width = 0;
@@ -306,8 +312,8 @@ export class World {
 
         // One duck, or a pair on wide screens, small beside the grown koi so they stay in the background.
         this.ducks = [];
-        // Whole screen pixels per sprite pixel keep the pixel art crisp: about 64px wide on a desktop, 48px on a phone.
-        const pixel = clamp(Math.round(baseLength / 100), 3, 4);
+        // Whole screen pixels per sprite pixel keep the pixel art crisp: a duckling about 42px wide.
+        const pixel = 3;
         for (let i = 0; i < (W >= 1024 ? 2 : 1); i++) {
             const heading = rand(0, TAU);
             this.ducks.push({
@@ -318,7 +324,9 @@ export class World {
                 length: DUCK_SPRITE_WIDTH * pixel,
                 heading,
                 speed: 8,
+                turn: 0,
                 facing: Math.cos(heading) >= 0 ? 1 : -1,
+                view: "side",
                 flipAt: -Infinity,
                 paddle: rand(0, TAU),
                 beat: 0,
@@ -683,6 +691,7 @@ export class World {
         const maxTurn = (food ? 1.8 : 0.4) * dt;
         const turned = clamp(angleDiff(d.heading, Math.atan2(dy * DUCK_STEER_VERTICAL, dx)), -maxTurn, maxTurn);
         d.heading += turned;
+        d.turn += (turned / dt - d.turn) * Math.min(1, dt * 4);
         // Flip only once clearly headed the other way, so a duck paddling up or down the screen doesn't flicker.
         const across = Math.cos(d.heading);
         const facing = across > 0.3 ? 1 : across < -0.3 ? -1 : d.facing;
@@ -690,6 +699,12 @@ export class World {
             d.facing = facing;
             d.flipAt = time;
         }
+        // Swimming down the screen it turns its face to the viewer, up the screen its back; with some slack
+        // between, so it doesn't flicker from one view to the next on a diagonal.
+        const down = Math.sin(d.heading);
+        if (down > 0.6) d.view = "front";
+        else if (down < -0.6) d.view = "back";
+        else if (Math.abs(down) < 0.45) d.view = "side";
 
         // Paddle and glide: a few strokes, then a glide that bleeds off speed with the feet still. A duck going for
         // food, or caught under text, paddles without a break.

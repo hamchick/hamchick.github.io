@@ -1,9 +1,15 @@
 import { bodyHalfWidth, classify, FLAG_BARBEL, FLAG_EYE, FLAG_FIN, type ShapeHit } from "./shape";
 import {
+    DUCK_BACK,
     DUCK_DABBLE,
-    DUCK_SPRITE,
+    DUCK_FRONT,
+    DUCK_HEAD_FROM,
+    DUCK_HEAD_ROWS,
+    DUCK_SIDE,
     DUCK_SPRITE_HEIGHT,
     DUCK_SPRITE_WIDTH,
+    DUCK_TAIL_COLS,
+    DUCK_TAIL_ROWS,
     DUCK_WATERLINE,
     duckPixel,
 } from "./duck-shape";
@@ -88,13 +94,13 @@ const DARK: Palette = {
         [255, 178, 96],
     ],
     ink: 0.42,
-    // Brighter than any koi, with a yellow bill well clear of the koi's red-orange.
+    // A yellow duckling with an orange bill.
     duck: {
-        shade: [128, 130, 146],
-        base: [255, 254, 250],
-        bill: [255, 204, 64],
-        billShade: [214, 146, 30],
-        // A near-black edge, which shows wherever the duck crosses a koi.
+        shade: [204, 140, 34],
+        base: [255, 228, 104],
+        bill: [244, 130, 44],
+        billShade: [190, 88, 26],
+        // A near-black edge, which shows wherever the duckling crosses a koi.
         outline: [8, 8, 12],
         outlineAlpha: 0.75,
         quack: [255, 210, 80],
@@ -126,14 +132,14 @@ const LIGHT: Palette = {
         [248, 176, 116],
     ],
     ink: 0.45,
-    // On paper a white duck would vanish into the page; the dark outline is what carries it here.
+    // A shade deeper on paper, so the yellow holds up against the pale page; the outline is a warm brown.
     duck: {
-        shade: [150, 150, 164],
-        base: [255, 255, 255],
-        bill: [246, 186, 36],
-        billShade: [200, 132, 18],
-        outline: [52, 52, 62],
-        outlineAlpha: 0.85,
+        shade: [200, 134, 28],
+        base: [255, 214, 70],
+        bill: [234, 114, 32],
+        billShade: [176, 78, 18],
+        outline: [92, 62, 22],
+        outlineAlpha: 0.8,
         // Yellow on paper is hard to read, so the quack is a deep amber here.
         quack: [178, 112, 10],
         alpha: 1,
@@ -641,11 +647,12 @@ export class KoiRenderer {
     // ── ducks ───────────────────────────────────────────────────────────
 
     /**
-     * Each duck as a crisp pixel sprite, side-on, on a grid of its own much finer than the pond's tiles, so it stays
-     * legible at a small size. It moves like it is paddling: feet stroking under the water, the body lifting a pixel
-     * with each stroke, the head nodding and the tail flicking in time, and it flips over when it turns round. It
-     * switches to a tail-up frame to dabble. What sits below the waterline shows faintly through the water, and a
-     * thin outline keeps it clear against koi and a pale page.
+     * Each duckling as a crisp pixel sprite, on a grid of its own much finer than the pond's tiles, so it stays
+     * legible at a small size. It shows its side, its face or its back depending on which way it swims, and moves
+     * like it is paddling: feet stroking under the water, the body lifting with each stroke, the head reaching
+     * forward on every push, leading into turns while the tail trails after, and it flips over when it turns round.
+     * It switches to a tail-up frame to dabble. What sits below the waterline shows faintly through the water, and
+     * a thin outline keeps it clear against koi and a pale page.
      */
     private drawDucks(world: World) {
         const { ctx, palette, cellDim } = this;
@@ -658,7 +665,13 @@ export class KoiRenderer {
             const p = d.pixel;
             const line = Math.max(1, Math.round(p / 4));
             const dabbling = d.dip > 0.3;
-            const frame = dabbling ? DUCK_DABBLE : DUCK_SPRITE;
+            const frame = dabbling
+                ? DUCK_DABBLE
+                : d.view === "front"
+                  ? DUCK_FRONT
+                  : d.view === "back"
+                    ? DUCK_BACK
+                    : DUCK_SIDE;
             const anchor = this.cellIndex(d.x, d.y);
             const dim = anchor >= 0 ? cellDim[anchor] : 1;
             const at = (c: number, r: number) => duckPixel(frame, c, r) !== ".";
@@ -679,18 +692,28 @@ export class KoiRenderer {
             const top = Math.round(
                 d.y - DUCK_WATERLINE * p - Math.max(0, Math.sin(d.paddle * 2)) * effort + swell
             );
-            // The head nods forward on the stroke and the tail flicks after it, a screen pixel each.
-            const nod = dabbling ? 0 : Math.round(stroke * effort) * dir;
-            const flick = dabbling ? 0 : Math.round(Math.sin(d.paddle + 1.2) * effort);
+            // The body isn't rigid. The head reaches forward on each push and nods with the stroke; in a turn it leads
+            // the way up or down while the tail trails the other way, and the tail flicks after each stroke.
+            const push = Math.max(0, Math.sin(d.paddle * 2));
+            const reach = dabbling ? 0 : Math.round(effort * (0.8 * stroke + 1.4 * push)) * dir;
+            // Positive while the bill swings down the screen.
+            const lean = dabbling ? 0 : clamp(d.turn * dir * 4, -2, 2);
+            const headDrop = Math.round(lean);
+            const tailDrop = Math.round(-lean * 0.6) + (dabbling ? 0 : Math.round(Math.sin(d.paddle + 1.2) * effort));
 
             // Where sprite pixel (c, r) lands on screen: mirrored to face left, narrowed while turning, and nudged
-            // by the nod (head, top right of the sprite) or the flick (tail, top left).
+            // where it belongs to the head (top rows, front) or the tail tuft (top rows, back).
             const rect = (c: number, r: number) => {
+                const head = r < DUCK_HEAD_ROWS && c >= DUCK_HEAD_FROM;
+                const tail = c < DUCK_TAIL_COLS && r < DUCK_TAIL_ROWS;
                 const left = cx + (dir > 0 ? c - W / 2 : W / 2 - 1 - c) * pw;
-                const x0 = Math.round(left) + (r <= 4 && c >= 8 ? nod : 0);
-                const x1 = Math.round(left + pw) + (r <= 4 && c >= 8 ? nod : 0);
-                const y0 = top + r * p + (c <= 1 && r <= 6 ? flick : 0);
-                return { x: x0, y: y0, w: Math.max(1, x1 - x0) };
+                const dx = head ? reach : 0;
+                const x0 = Math.round(left) + dx;
+                const x1 = Math.round(left + pw) + dx;
+                const y0 = top + r * p + (head ? headDrop : tail ? tailDrop : 0);
+                // When the head lifts, its bottom row stretches down to the neck, so they never come apart.
+                const h = head && r === DUCK_HEAD_ROWS - 1 ? p + Math.max(0, -headDrop) : p;
+                return { x: x0, y: y0, w: Math.max(1, x1 - x0), h };
             };
 
             // A few short ripples where the body meets the water, either side.
@@ -709,8 +732,8 @@ export class KoiRenderer {
                 ctx.globalAlpha = 0.45 * dim;
                 ctx.fillStyle = this.style(packRgb(feet));
                 for (const [base, phase] of [
-                    [5, 1],
-                    [9, -1],
+                    [4, 1],
+                    [8, -1],
                 ]) {
                     const r = rect(base + Math.round(stroke * phase * 1.5 * effort), DUCK_SPRITE_HEIGHT);
                     ctx.fillRect(r.x, r.y, r.w * 2, Math.max(1, Math.round(p * 0.75)));
@@ -721,7 +744,7 @@ export class KoiRenderer {
                 for (let c = 0; c < W; c++) {
                     const px = duckPixel(frame, c, r);
                     if (px === ".") continue;
-                    const { x: sx, y: sy, w } = rect(c, r);
+                    const { x: sx, y: sy, w, h } = rect(c, r);
                     const under = r >= DUCK_WATERLINE;
                     // Plumage is lit from above: brightest on the crown and back, greying toward the water.
                     const lit = clamp(1 - r / DUCK_WATERLINE, 0, 1);
@@ -753,17 +776,17 @@ export class KoiRenderer {
                     }
                     ctx.globalAlpha = alpha;
                     ctx.fillStyle = this.style(packRgb(rgb));
-                    ctx.fillRect(sx, sy, w, p);
+                    ctx.fillRect(sx, sy, w, h);
 
                     // A hairline outline on each open side of the pixel, above the water only.
                     if (under) continue;
                     ctx.globalAlpha = look.outlineAlpha * dim;
                     ctx.fillStyle = outline;
                     const toRight = dir > 0;
-                    if (!at(c - 1, r)) ctx.fillRect(toRight ? sx - line : sx + w, sy, line, p);
-                    if (!at(c + 1, r)) ctx.fillRect(toRight ? sx + w : sx - line, sy, line, p);
+                    if (!at(c - 1, r)) ctx.fillRect(toRight ? sx - line : sx + w, sy, line, h);
+                    if (!at(c + 1, r)) ctx.fillRect(toRight ? sx + w : sx - line, sy, line, h);
                     if (!at(c, r - 1)) ctx.fillRect(sx, sy - line, w, line);
-                    if (!at(c, r + 1) && r + 1 < DUCK_WATERLINE) ctx.fillRect(sx, sy + p, w, line);
+                    if (!at(c, r + 1) && r + 1 < DUCK_WATERLINE) ctx.fillRect(sx, sy + h, w, line);
                 }
             }
         }
