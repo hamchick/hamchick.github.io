@@ -107,6 +107,26 @@ export interface Duck {
     dip: number;
     dipAt: number;
     nextDip: number;
+    /** Where the duck has been lately, oldest first, for drawing the V of its wake. */
+    trail: TrailPoint[];
+    nextTrail: number;
+    nextQuack: number;
+}
+
+export interface TrailPoint {
+    x: number;
+    y: number;
+    heading: number;
+    speed: number;
+    born: number;
+}
+
+/** A little "quack" that floats up off a duck and fades. */
+export interface Quack {
+    x: number;
+    y: number;
+    born: number;
+    text: string;
 }
 
 export interface Pellet {
@@ -176,6 +196,12 @@ const DUCK_APPETITE = 0.4;
 const DUCK_NOTICE = 2.2;
 const DUCK_RANGE = 460;
 export const DUCK_DIP_TIME = 0.9;
+/** How long a wake stays on the water behind a duck, and how often its path is sampled. */
+export const TRAIL_LIFE = 6;
+const TRAIL_EVERY = 0.2;
+export const QUACK_LIFE = 2.4;
+/** Chance of a quack on each pellet a duck takes. */
+const QUACK_ON_FOOD = 0.5;
 
 export class World {
     width = 0;
@@ -183,6 +209,7 @@ export class World {
     time = 0;
     koi: Koi[] = [];
     ducks: Duck[] = [];
+    quacks: Quack[] = [];
     pellets: Pellet[] = [];
     bites: Bite[] = [];
     /** Moving the mouse to throw food isn't a threat, so swipes don't startle koi for a moment after a throw. */
@@ -253,7 +280,7 @@ export class World {
 
         // One duck, or a pair on wide screens, small beside the grown koi so they stay in the background.
         this.ducks = [];
-        const duckLength = clamp(baseLength * 0.3, 60, 112);
+        const duckLength = clamp(baseLength * 0.36, 70, 132);
         for (let i = 0; i < (W >= 1024 ? 2 : 1); i++) {
             this.ducks.push({
                 id: i + 1,
@@ -272,6 +299,10 @@ export class World {
                 dip: 0,
                 dipAt: -Infinity,
                 nextDip: rand(6, 16),
+                trail: [],
+                nextTrail: 0,
+                // The first quack comes early, so a visitor finds out there are ducks before long.
+                nextQuack: rand(3, 8) + i * 4,
             });
         }
     }
@@ -314,6 +345,7 @@ export class World {
                 if (!clear(x, y)) continue;
                 d.x = x;
                 d.y = y;
+                d.trail = [];
                 break;
             }
         }
@@ -349,6 +381,7 @@ export class World {
         }
         this.ripples = this.ripples.filter((r) => t - r.born < rippleLife(r));
         this.bites = this.bites.filter((b) => t - b.born < BITE_LIFE);
+        this.quacks = this.quacks.filter((q) => t - q.born < QUACK_LIFE);
     }
 
     private stepKoi(k: Koi, dt: number) {
@@ -560,7 +593,7 @@ export class World {
             const oy = d.y - other.y;
             const dist = Math.hypot(ox, oy) || 1;
             // Room to paddle, but the pair never wanders far apart.
-            const room = (L + other.length) * 1.3;
+            const room = (L + other.length) * 0.8;
             if (dist < room) {
                 dx += (ox / dist) * (1 - dist / room) * 2.5;
                 dy += (oy / dist) * (1 - dist / room) * 2.5;
@@ -582,13 +615,13 @@ export class World {
         dx += edge(d.x) - edge(W - d.x);
         dy += edge(d.y) - edge(H - d.y);
 
-        const maxTurn = (food ? 1.8 : 0.55) * dt;
+        const maxTurn = (food ? 1.8 : 0.4) * dt;
         const turned = clamp(angleDiff(d.heading, Math.atan2(dy, dx)), -maxTurn, maxTurn);
         d.heading += turned;
         d.turn += (turned / dt - d.turn) * Math.min(1, dt * 2.5);
 
         // A duck caught under text paddles out briskly instead of idling there.
-        const target = food ? 30 + L * 0.12 : 7 + L * 0.04 + crowded * 22;
+        const target = food ? 30 + L * 0.12 : 10 + L * 0.05 + crowded * 22;
         d.speed += (target - d.speed) * Math.min(1, dt * (food ? 1.2 : 0.5));
         d.x += Math.cos(d.heading) * d.speed * dt;
         d.y += Math.sin(d.heading) * d.speed * dt;
@@ -614,6 +647,7 @@ export class World {
             d.keen -= 0.35;
             d.dipAt = time;
             d.nextDip = time + rand(6, 14);
+            if (Math.random() < QUACK_ON_FOOD) this.quack(d, Math.random() < 0.3 ? "quack quack!" : "quack!");
         } else if (!food && time > d.nextDip) {
             // Now and then, while idling, the duck dabbles at the surface.
             d.dipAt = time;
@@ -622,6 +656,26 @@ export class World {
         }
         const dipAge = time - d.dipAt;
         d.dip = dipAge < DUCK_DIP_TIME ? Math.sin((Math.PI * dipAge) / DUCK_DIP_TIME) : 0;
+
+        // Left to itself, a duck quacks once in a long while.
+        if (time > d.nextQuack) this.quack(d, "quack");
+
+        if (time > d.nextTrail) {
+            d.trail.push({ x: d.x, y: d.y, heading: d.heading, speed: d.speed, born: time });
+            d.nextTrail = time + TRAIL_EVERY;
+        }
+        while (d.trail.length > 0 && time - d.trail[0].born > TRAIL_LIFE) d.trail.shift();
+    }
+
+    private quack(d: Duck, text: string) {
+        // Rising from just above the head, nudged so two quacks in a row don't stack on each other.
+        this.quacks.push({
+            x: d.x + Math.cos(d.heading) * d.length * 0.35 + rand(-6, 6),
+            y: d.y - d.length * 0.35,
+            born: this.time,
+            text,
+        });
+        d.nextQuack = this.time + rand(25, 55);
     }
 
     /** The nearest floating pellet in reach of the bill, sticking with the current one while it lasts. */
