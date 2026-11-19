@@ -5,7 +5,8 @@
  *
  *   SIDE    swimming left or right
  *   FRONT   three-quarters toward the viewer, swimming down the screen: both eyes and the bill show
- *   BACK    three-quarters away, swimming up the screen: the back of the head, the bill just peeking out
+ *   BACK    three-quarters away, swimming up the screen: mostly the back of the head, with the near eye and the
+ *           bill just showing past the cheek
  *   DABBLE  tipped forward, tail to the sky and head under, for feeding (a frame of its own, since rotating
  *           pixel art leaves it ragged)
  *
@@ -46,8 +47,8 @@ export const DUCK_FRONT = [
 export const DUCK_BACK = [
     ".......WWW....",
     "......WWWWW...",
+    "......WWWEWW..",
     "......WWWWWB..",
-    "......WWWWW...",
     ".......WWW....",
     "WW....WWWW....",
     "WWW.WWWWWWW...",
