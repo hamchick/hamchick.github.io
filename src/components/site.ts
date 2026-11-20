@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { SCALED_FROM_PX, STRIP } from "@/components/strip";
 
 /** The current path without its trailing slash, so "/about/" and "/about" compare equal. */
 export function usePath() {
@@ -12,6 +13,19 @@ export function usePath() {
 /** The home page is the pond itself; every other page is content with the pond as a strip along the top. */
 export function useIsHome() {
     return usePath() === "/";
+}
+
+/** The strip's sizes for this screen: the four-fifths sizes on a wider screen, full size on a phone. */
+export function useStrip() {
+    const [wide, setWide] = useState(false);
+    useEffect(() => {
+        const query = window.matchMedia(`(min-width: ${SCALED_FROM_PX}px)`);
+        const read = () => setWide(query.matches);
+        read();
+        query.addEventListener("change", read);
+        return () => query.removeEventListener("change", read);
+    }, []);
+    return wide ? STRIP.wide : STRIP.phone;
 }
 
 /** True once the page has scrolled past `threshold` pixels. */
