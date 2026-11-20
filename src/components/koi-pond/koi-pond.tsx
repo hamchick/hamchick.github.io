@@ -6,6 +6,11 @@ import { World, type Box } from "./world";
 
 export type PondStats = { koi: number; pellets: number };
 
+/** Fired on window each time someone throws food in, so the page around the pond can respond. */
+export const POND_FEED_EVENT = "pond:feed";
+/** How long the pond takes to narrow to its strip on a content page, matched by the clip animation in Pond. */
+export const BAND_TRANSITION_MS = 700;
+
 /** This site keeps its theme in <html data-theme>, toggled by ThemeToggle; follow it. */
 function useIsLight() {
     const [isLight, setIsLight] = useState(true);
@@ -63,6 +68,9 @@ class PondEngine {
     /** Set by a scroll: the content has moved, so the dim mask and the koi's no-go boxes are stale. */
     private contentMoved = false;
     private stillFrame = 0;
+    /** Depth of the strip of water showing on a content page, or null for the whole pond. */
+    private band: number | null = null;
+    private bandTimer = 0;
     private reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
     private resizeObserver = new ResizeObserver(() => this.resize());
     private intersectionObserver = new IntersectionObserver(([entry]) => {
@@ -91,6 +99,7 @@ class PondEngine {
         this.disposed = true;
         cancelAnimationFrame(this.raf);
         cancelAnimationFrame(this.stillFrame);
+        clearTimeout(this.bandTimer);
         window.removeEventListener("scroll", this.onScroll);
         this.resizeObserver.disconnect();
         this.intersectionObserver.disconnect();
@@ -99,6 +108,21 @@ class PondEngine {
         window.removeEventListener("click", this.onClick);
         document.documentElement.removeEventListener("pointerleave", this.onPointerLeave);
         window.removeEventListener("blur", this.onPointerLeave);
+    }
+
+    /**
+     * Narrow the pond to a strip of water along the top (a content page) or open it back out (null, the home page).
+     * Feeding and the cursor only count inside the strip. Narrowing waits until the clip has closed over the rest of
+     * the pond, so koi and ducklings brought up to the strip arrive out of sight rather than jumping.
+     */
+    setBand(band: number | null, animate: boolean) {
+        clearTimeout(this.bandTimer);
+        this.band = band;
+        if (band === null || !animate) {
+            this.world.setBand(band);
+            return;
+        }
+        this.bandTimer = window.setTimeout(() => this.world.setBand(band), BAND_TRANSITION_MS);
     }
 
     setTheme(isLight: boolean) {
@@ -192,7 +216,9 @@ class PondEngine {
         const rect = this.canvas.getBoundingClientRect();
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
-        return { x, y, inside: x >= 0 && y >= 0 && x <= rect.width && y <= rect.height };
+        // On a content page only the strip along the top is water; below it is the page.
+        const bottom = this.band ?? rect.height;
+        return { x, y, inside: x >= 0 && y >= 0 && x <= rect.width && y <= bottom };
     }
 
     private onPointerMove = (e: PointerEvent) => {
@@ -218,6 +244,7 @@ class PondEngine {
         if (!inside) return;
         this.world.feed(x, y);
         this.report();
+        window.dispatchEvent(new Event(POND_FEED_EVENT));
     };
 
     // The pond is fixed but the page scrolls over it, so the content boxes move with every scroll.
@@ -238,9 +265,14 @@ class PondEngine {
     };
 }
 
-type KoiPondProps = { className?: string; onStats?: (stats: PondStats) => void };
+type KoiPondProps = {
+    className?: string;
+    onStats?: (stats: PondStats) => void;
+    /** Depth of the strip of water showing along the top, or null for the whole pond. */
+    band?: number | null;
+};
 
-export default function KoiPond({ className, onStats }: KoiPondProps) {
+export default function KoiPond({ className, onStats, band = null }: KoiPondProps) {
     const isLight = useIsLight();
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const engineRef = useRef<PondEngine | null>(null);
@@ -262,6 +294,13 @@ export default function KoiPond({ className, onStats }: KoiPondProps) {
     useEffect(() => {
         engineRef.current?.setTheme(isLight);
     }, [isLight]);
+
+    // The first band is set at once, for a page loaded straight onto a content page; later changes animate.
+    const firstBand = useRef(true);
+    useEffect(() => {
+        engineRef.current?.setBand(band, !firstBand.current);
+        firstBand.current = false;
+    }, [band]);
 
     return <canvas ref={canvasRef} aria-hidden="true" className={`pointer-events-none ${className ?? ""}`} />;
 }

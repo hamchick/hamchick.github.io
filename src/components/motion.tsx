@@ -19,6 +19,21 @@ export function Reveal({ children, delay = 0, className }: { children: React.Rea
   );
 }
 
+/** A content page's body, rising into place as the pond closes up into the strip above it. */
+export function PageEnter({ children, className }: { children: React.ReactNode; className?: string }) {
+    const reduce = useReducedMotion();
+    return (
+        <motion.main
+            className={className}
+            initial={reduce ? false : { opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
+        >
+            {children}
+        </motion.main>
+    );
+}
+
 /** Cycles through words with a vertical slide. */
 export function RotatingWord({ words, interval = 2200 }: { words: string[]; interval?: number }) {
   const [i, setI] = useState(0);
