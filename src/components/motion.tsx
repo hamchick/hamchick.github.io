@@ -46,7 +46,8 @@ export function RotatingWord({ words, interval = 2200 }: { words: string[]; inte
   }, [words.length, interval, reduce]);
 
   return (
-    <span className="relative inline-grid overflow-hidden align-bottom">
+    // Kept to one line: a multi-word phrase wrapping would make the box two lines tall and show the next word.
+    <span className="relative inline-grid overflow-hidden whitespace-nowrap align-bottom">
       {/* Keeps the line height steady while words swap. */}
       <span className="invisible col-start-1 row-start-1">{words.reduce((a, b) => (b.length > a.length ? b : a))}</span>
       <AnimatePresence mode="popLayout" initial={false}>

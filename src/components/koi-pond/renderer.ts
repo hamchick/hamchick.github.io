@@ -32,12 +32,12 @@ import {
     type World,
 } from "./world";
 
-type Rgb = [number, number, number];
+export type Rgb = [number, number, number];
 
 // How visible a koi stays while it swims under page content.
 const DIM_UNDER_CONTENT = 0.15;
 
-interface Palette {
+export interface Palette {
     /** Page background, which tiles are mixed toward. */
     bg: Rgb;
     white: Rgb;
@@ -71,7 +71,7 @@ interface Palette {
     };
 }
 
-const DARK: Palette = {
+export const DARK: Palette = {
     bg: [26, 25, 33],
     white: [236, 228, 218],
     red: [232, 96, 56],
@@ -109,7 +109,7 @@ const DARK: Palette = {
 };
 
 // Paper page: tiles are pale washes of the skin colour with dark glyphs etched on top.
-const LIGHT: Palette = {
+export const LIGHT: Palette = {
     bg: [245, 244, 241],
     white: [112, 108, 104],
     red: [204, 62, 28],
@@ -147,7 +147,7 @@ const LIGHT: Palette = {
 };
 
 // Dense glyphs etched into each skin tile, sparse where it catches the light.
-const TILE_GLYPHS = "t%SX8@#";
+export const TILE_GLYPHS = "t%SX8@#";
 const SUBSAMPLES = [0.25, 0.25, 0.75, 0.25, 0.25, 0.75, 0.75, 0.75];
 
 // A line glyph that follows a direction in screen space, for fin rays and ripple rings.
@@ -218,12 +218,12 @@ function ramp(stops: Rgb[], t: number): Rgb {
     return mix(stops[i], stops[i + 1], x - i);
 }
 
-const mix = (a: Rgb, b: Rgb, k: number): Rgb => [
+export const mix = (a: Rgb, b: Rgb, k: number): Rgb => [
     (a[0] + (b[0] - a[0]) * k) | 0,
     (a[1] + (b[1] - a[1]) * k) | 0,
     (a[2] + (b[2] - a[2]) * k) | 0,
 ];
-const shade = (c: Rgb, k: number): Rgb => [
+export const shade = (c: Rgb, k: number): Rgb => [
     Math.min(255, c[0] * k) | 0,
     Math.min(255, c[1] * k) | 0,
     Math.min(255, c[2] * k) | 0,
