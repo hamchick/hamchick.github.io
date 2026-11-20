@@ -58,8 +58,8 @@ export function HomeCard() {
     return (
         // Full, it sits low on a phone and to the left of centre on a wider screen; shrunk, in the bottom-left corner.
         <div
-            className={`pointer-events-none fixed inset-0 z-10 flex px-4 pb-6 sm:px-10 sm:pb-8 ${
-                shrunk ? "items-end" : "items-end pb-16 sm:items-center sm:pb-0 lg:pl-[max(2.5rem,calc((100vw-64rem)/2+1.5rem))]"
+            className={`pointer-events-none fixed inset-0 z-10 flex px-4 pb-6 sm:px-12 sm:pb-10 ${
+                shrunk ? "items-end" : "items-end pb-16 sm:items-center sm:pb-0"
             }`}
         >
             <LayoutGroup>
@@ -78,18 +78,18 @@ export function HomeCard() {
                             transition={transition}
                             type="button"
                             onClick={() => setShrunk(false)}
-                            className="group flex items-center gap-2 text-sm font-semibold"
+                            className="group flex items-center gap-2 text-lg font-semibold"
                             title="Show more"
                         >
                             {profile.name}
                             <span
                                 aria-hidden="true"
-                                className="text-xs text-muted opacity-60 transition group-hover:text-accent group-hover:opacity-100 sm:opacity-0"
+                                className="text-sm text-muted opacity-60 transition group-hover:text-accent group-hover:opacity-100 sm:opacity-0"
                             >
                                 ↖
                             </span>
                         </motion.button>
-                        <motion.nav {...fade} className="mt-1 flex flex-wrap gap-x-3 text-xs text-muted">
+                        <motion.nav {...fade} className="mt-1.5 flex flex-wrap gap-x-4 text-sm text-muted">
                             {links.map((l) => (
                                 <Link key={l.href} href={l.href} className="transition hover:text-ink">
                                     {l.label}

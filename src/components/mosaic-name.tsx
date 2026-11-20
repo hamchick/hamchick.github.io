@@ -74,7 +74,7 @@ function hash(a: number, b: number, c: number) {
 const css = (c: Rgb) => `rgb(${c[0]},${c[1]},${c[2]})`;
 const FRAME_MS = 66;
 // Tiles at most this big, so the name sits at headline size rather than filling the screen.
-const MAX_TILE = 5;
+const MAX_TILE = 3;
 
 /**
  * The name drawn in the pond's own material: each dot of a dot-matrix font is a tile like a koi's, washed in the
@@ -112,7 +112,7 @@ export function MosaicName({ text, className }: { text: string; className?: stri
             ctx.textAlign = "center";
             ctx.textBaseline = "middle";
             // The gap between tiles: a pixel, narrower on tiny tiles so they don't break up into dots.
-            const gap = cw >= 4 ? 1 : cw * 0.2;
+            const gap = cw >= 4 ? 1 : Math.max(0.5, cw * 0.22);
             for (let c = 0; c < grid.cols; c++) {
                 for (let r = 0; r < ROWS; r++) {
                     if (!grid.on(c, r)) continue;
@@ -153,7 +153,7 @@ export function MosaicName({ text, className }: { text: string; className?: stri
             // Whole pixels when there's room, for crisp tiles; on a narrow phone, whatever fraction fits the whole
             // name across, rather than cutting the end off.
             const fit = Math.min(MAX_TILE, width / grid.cols);
-            cw = fit >= 4 ? Math.floor(fit) : fit;
+            cw = fit >= 3 ? Math.floor(fit) : fit;
             ch = cw * 1.15;
             dpr = Math.min(window.devicePixelRatio || 1, 2);
             canvas.width = Math.round(grid.cols * cw * dpr);
