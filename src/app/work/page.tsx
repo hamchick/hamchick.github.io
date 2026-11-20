@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { PageEnter, Reveal } from "@/components/motion";
-import { card, SectionTitle, Tag } from "@/components/sections";
+import { card, label, SectionTitle, Tag } from "@/components/sections";
 import { profile, projects, thesis } from "@/data/profile";
 
 export const metadata: Metadata = {
@@ -57,7 +57,7 @@ export default function WorkPage() {
                 <section>
                     <SectionTitle index="02">Research</SectionTitle>
                     <article className={`${card} p-6 sm:p-8`}>
-                        <p className="font-mono text-xs uppercase tracking-wider text-muted">Master&apos;s thesis</p>
+                        <p className={`${label} lowercase`}>Master&apos;s thesis</p>
                         <h3 className="mt-2 text-xl font-semibold">{thesis.title}</h3>
                         <ul className="mt-4 list-disc space-y-2 pl-4 text-sm leading-relaxed marker:text-accent">
                             {thesis.points.map((p) => (

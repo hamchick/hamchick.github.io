@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import { PageEnter, Reveal } from "@/components/motion";
-import { card, SectionTitle, Timeline } from "@/components/sections";
+import { card, label, SectionTitle, Timeline } from "@/components/sections";
 import { certificates, education, experience, profile, skills } from "@/data/profile";
 
 export const metadata: Metadata = {
@@ -42,7 +42,7 @@ export default function AboutPage() {
                 <div className="mt-4 grid gap-4 sm:grid-cols-3">
                     {skills.map((s) => (
                         <div key={s.group} className={`${card} p-5`}>
-                            <h3 className="mb-3 font-mono text-xs uppercase tracking-wider text-accent">{s.group}</h3>
+                            <h3 className="mb-3 font-mono text-xs lowercase text-accent">{s.group}</h3>
                             <ul className="space-y-1 text-sm">
                                 {s.items.map((i) => (
                                     <li key={i}>{i}</li>
@@ -58,11 +58,11 @@ export default function AboutPage() {
                     <SectionTitle index="02">Experience &amp; Education</SectionTitle>
                     <div className={`${card} grid gap-10 p-6 sm:p-8`}>
                         <div>
-                            <h3 className="mb-4 font-mono text-xs uppercase tracking-wider text-muted">Experience</h3>
+                            <h3 className={`${label} mb-4 lowercase`}>Experience</h3>
                             <Timeline items={experience} />
                         </div>
                         <div>
-                            <h3 className="mb-4 font-mono text-xs uppercase tracking-wider text-muted">Education</h3>
+                            <h3 className={`${label} mb-4 lowercase`}>Education</h3>
                             <Timeline items={education} />
                         </div>
                     </div>
