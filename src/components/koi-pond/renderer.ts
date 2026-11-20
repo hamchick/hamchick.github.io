@@ -646,9 +646,10 @@ export class KoiRenderer {
      * forward on every push, leading into turns while the tail trails after, and it flips over when it turns round.
      * It switches to a tail-up frame to dabble. What sits below the waterline shows faintly through the water.
      *
-     * Each sprite pixel is drawn as a tile with a hairline gap around it, like the koi's tiles and the tiled name on
-     * the home page, and tiles on the edge of the body facing the light are a touch brighter, the far edges a touch
-     * darker. No outline: like everything else in the pond, it reads by its tiles and their light and shade.
+     * Each sprite pixel is a solid tile with a faint seam between it and its neighbours, like grout between tiles:
+     * enough to echo the tiled koi and name up close, without breaking so small a sprite into a busy mesh (cut-out
+     * gaps did). Tiles on the edge of the body facing the light are a touch brighter, the far edges a touch darker.
+     * No outline: like everything else in the pond, it reads by its tiles and their light and shade.
      */
     private drawDucks(world: World) {
         const { ctx, palette, cellDim } = this;
@@ -663,8 +664,8 @@ export class KoiRenderer {
 
         for (const d of world.ducks) {
             const p = d.pixel;
-            // The gap between tiles: about a fifth of a tile, and never less than a device pixel.
-            const gap = Math.max(1 / dpr, snap(p * 0.22));
+            // A seam is one device pixel: as fine a line as the screen can draw.
+            const seam = 1 / dpr;
             const dabbling = d.dip > 0.3;
             const frame = dabbling
                 ? DUCK_DABBLE
@@ -774,7 +775,15 @@ export class KoiRenderer {
                     }
                     ctx.globalAlpha = alpha;
                     ctx.fillStyle = this.style(packRgb(rgb));
-                    ctx.fillRect(sx + gap, sy + gap, Math.max(gap, w - gap), Math.max(gap, h - gap));
+                    ctx.fillRect(sx, sy, w, h);
+                    // Faint seams along this tile's shared edges with the tile below and the one to its right on screen,
+                    // in a shade only a little darker than the tile, so they show up close but don't break it into a
+                    // grid. None on the outer edge, which stays clean.
+                    if (under) continue;
+                    ctx.globalAlpha = alpha * 0.45;
+                    ctx.fillStyle = this.style(packRgb(shade(rgb, 0.78)));
+                    if (r + 1 < DUCK_WATERLINE && at(c, r + 1)) ctx.fillRect(sx, sy + h - seam, w, seam);
+                    if (at(farSide, r)) ctx.fillRect(sx + w - seam, sy, seam, h);
                 }
             }
 
@@ -798,12 +807,11 @@ export class KoiRenderer {
                     const fx = ankle.x + Math.round(kick * 1.5 * p) * dir;
                     const fy = ankle.y;
                     ctx.globalAlpha = (open ? 0.55 : 0.32) * dim;
-                    // Tiles like the rest of it: one at the ankle, then the web, spread three wide behind the ankle on
-                    // the push, a single tile trailing when folded.
-                    const tile = (x: number, y: number) => ctx.fillRect(x + gap, y + gap, w - gap, thick - gap);
-                    tile(fx, fy);
-                    if (open) for (let k = 0; k < 3; k++) tile((dir > 0 ? fx - 2 * w : fx) + k * w, fy + thick);
-                    else tile(fx - dir * w, fy + thick);
+                    // One tile at the ankle, then the web: spread three wide behind the ankle on the push, a single tile
+                    // trailing when folded.
+                    ctx.fillRect(fx, fy, w, thick);
+                    if (open) ctx.fillRect(dir > 0 ? fx - 2 * w : fx, fy + thick, 3 * w, thick);
+                    else ctx.fillRect(fx - dir * w, fy + thick, w, thick);
                 }
             }
         }
