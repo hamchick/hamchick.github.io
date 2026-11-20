@@ -93,13 +93,15 @@ export const DARK: Palette = {
     ],
     ink: 0.42,
     // A yellow duckling with an orange bill.
+    // A duckling yellow toned down a little, so it's still the brightest thing in the pond without outshining the
+    // koi; the bill leans a touch toward the koi's red-orange, and the bird sits slightly into the water as they do.
     duck: {
-        shade: [204, 140, 34],
-        base: [255, 228, 104],
-        bill: [244, 130, 44],
-        billShade: [190, 88, 26],
+        shade: [194, 136, 43],
+        base: [248, 221, 116],
+        bill: [235, 126, 51],
+        billShade: [181, 87, 32],
         quack: [255, 210, 80],
-        alpha: 1,
+        alpha: 0.96,
     },
 };
 
@@ -129,13 +131,13 @@ export const LIGHT: Palette = {
     ink: 0.45,
     // A shade deeper on paper, so the yellow holds up against the pale page.
     duck: {
-        shade: [200, 134, 28],
-        base: [255, 214, 70],
-        bill: [234, 114, 32],
-        billShade: [176, 78, 18],
+        shade: [184, 128, 44],
+        base: [240, 200, 96],
+        bill: [214, 108, 44],
+        billShade: [160, 76, 28],
         // Yellow on paper is hard to read, so the quack is a deep amber here.
         quack: [178, 112, 10],
-        alpha: 1,
+        alpha: 0.94,
     },
 };
 
