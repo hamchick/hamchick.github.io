@@ -13,7 +13,7 @@ export const POND_FEED_EVENT = "pond:feed";
 export const BAND_TRANSITION_MS = 700;
 
 /** This site keeps its theme in <html data-theme>, toggled by ThemeToggle; follow it. */
-function useIsLight() {
+export function useIsLight() {
     const [isLight, setIsLight] = useState(true);
     useEffect(() => {
         const root = document.documentElement;
