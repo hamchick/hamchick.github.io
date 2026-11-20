@@ -58,14 +58,12 @@ export interface Palette {
     hi: Rgb[];
     /** Glyph brightness relative to the tile under it. */
     ink: number;
-    /** The duckling's down from shadow to lit, its bill, the outline that keeps it crisp, and its quack. */
+    /** The duckling's down from shadow to lit, its bill, and its quack. */
     duck: {
         shade: Rgb;
         base: Rgb;
         bill: Rgb;
         billShade: Rgb;
-        outline: Rgb;
-        outlineAlpha: number;
         quack: Rgb;
         alpha: number;
     };
@@ -100,9 +98,6 @@ export const DARK: Palette = {
         base: [255, 228, 104],
         bill: [244, 130, 44],
         billShade: [190, 88, 26],
-        // A near-black edge, which shows wherever the duckling crosses a koi.
-        outline: [8, 8, 12],
-        outlineAlpha: 0.75,
         quack: [255, 210, 80],
         alpha: 1,
     },
@@ -132,14 +127,12 @@ export const LIGHT: Palette = {
         [248, 176, 116],
     ],
     ink: 0.45,
-    // A shade deeper on paper, so the yellow holds up against the pale page; the outline is a warm brown.
+    // A shade deeper on paper, so the yellow holds up against the pale page.
     duck: {
         shade: [200, 134, 28],
         base: [255, 214, 70],
         bill: [234, 114, 32],
         billShade: [176, 78, 18],
-        outline: [92, 62, 22],
-        outlineAlpha: 0.8,
         // Yellow on paper is hard to read, so the quack is a deep amber here.
         quack: [178, 112, 10],
         alpha: 1,
@@ -651,14 +644,16 @@ export class KoiRenderer {
      * legible at a small size. It shows its side, its face or its back depending on which way it swims, and moves
      * like it is paddling: feet stroking under the water, the body lifting with each stroke, the head reaching
      * forward on every push, leading into turns while the tail trails after, and it flips over when it turns round.
-     * It switches to a tail-up frame to dabble. What sits below the waterline shows faintly through the water, and
-     * a thin outline keeps it clear against koi and a pale page.
+     * It switches to a tail-up frame to dabble. What sits below the waterline shows faintly through the water.
+     *
+     * Each sprite pixel is drawn as a tile with a hairline gap around it, like the koi's tiles and the tiled name on
+     * the home page, and tiles on the edge of the body facing the light are a touch brighter, the far edges a touch
+     * darker. No outline: like everything else in the pond, it reads by its tiles and their light and shade.
      */
     private drawDucks(world: World) {
         const { ctx, palette, cellDim } = this;
         const look = palette.duck;
         const W = DUCK_SPRITE_WIDTH;
-        const outline = this.style(packRgb(look.outline));
         // Seen through a little water: the bill's orange, only slightly muted.
         const feet = mix(look.bill, palette.bg, 0.2);
         // Positions land on whole device pixels. A sprite pixel is a whole number of device pixels too (see
@@ -668,7 +663,8 @@ export class KoiRenderer {
 
         for (const d of world.ducks) {
             const p = d.pixel;
-            const line = Math.max(1, Math.round(p / 4));
+            // The gap between tiles: about a fifth of a tile, and never less than a device pixel.
+            const gap = Math.max(1 / dpr, snap(p * 0.22));
             const dabbling = d.dip > 0.3;
             const frame = dabbling
                 ? DUCK_DABBLE
@@ -741,10 +737,19 @@ export class KoiRenderer {
                     const under = r >= DUCK_WATERLINE;
                     // Plumage is lit from above: brightest on the crown and back, greying toward the water.
                     const lit = clamp(1 - r / DUCK_WATERLINE, 0, 1);
+                    // And from the screen's upper left, as the koi are: tiles on an edge facing it catch the light,
+                    // tiles on the far edges fall into shade. Left and right swap when the duckling faces left.
+                    const nearSide = dir > 0 ? c - 1 : c + 1;
+                    const farSide = dir > 0 ? c + 1 : c - 1;
+                    const bevel =
+                        (at(c, r - 1) ? 0 : 0.14) +
+                        (at(nearSide, r) ? 0 : 0.07) -
+                        (at(c, r + 1) ? 0 : 0.14) -
+                        (at(farSide, r) ? 0 : 0.07);
                     let rgb: Rgb;
                     switch (px) {
                         case "B":
-                            rgb = look.bill;
+                            rgb = mix(look.billShade, look.bill, clamp(0.85 + bevel, 0, 1));
                             break;
                         case "b":
                             rgb = look.billShade;
@@ -753,13 +758,13 @@ export class KoiRenderer {
                             rgb = palette.eye;
                             break;
                         case "G":
-                            rgb = mix(look.shade, look.base, 0.55 + 0.25 * lit);
+                            rgb = mix(look.shade, look.base, clamp(0.55 + 0.25 * lit + bevel, 0, 1));
                             break;
                         case "S":
-                            rgb = mix(look.shade, look.base, 0.3);
+                            rgb = mix(look.shade, look.base, clamp(0.3 + bevel, 0, 1));
                             break;
                         default:
-                            rgb = mix(look.shade, look.base, 0.62 + 0.38 * lit);
+                            rgb = mix(look.shade, look.base, clamp(0.62 + 0.38 * lit + bevel, 0, 1));
                     }
                     let alpha = look.alpha * dim;
                     // Below the waterline the duck shows only faintly, through the water.
@@ -769,17 +774,7 @@ export class KoiRenderer {
                     }
                     ctx.globalAlpha = alpha;
                     ctx.fillStyle = this.style(packRgb(rgb));
-                    ctx.fillRect(sx, sy, w, h);
-
-                    // A hairline outline on each open side of the pixel, above the water only.
-                    if (under) continue;
-                    ctx.globalAlpha = look.outlineAlpha * dim;
-                    ctx.fillStyle = outline;
-                    const toRight = dir > 0;
-                    if (!at(c - 1, r)) ctx.fillRect(toRight ? sx - line : sx + w, sy, line, h);
-                    if (!at(c + 1, r)) ctx.fillRect(toRight ? sx + w : sx - line, sy, line, h);
-                    if (!at(c, r - 1)) ctx.fillRect(sx, sy - line, w, line);
-                    if (!at(c, r + 1) && r + 1 < DUCK_WATERLINE) ctx.fillRect(sx, sy + h, w, line);
+                    ctx.fillRect(sx + gap, sy + gap, Math.max(gap, w - gap), Math.max(gap, h - gap));
                 }
             }
 
@@ -803,10 +798,12 @@ export class KoiRenderer {
                     const fx = ankle.x + Math.round(kick * 1.5 * p) * dir;
                     const fy = ankle.y;
                     ctx.globalAlpha = (open ? 0.55 : 0.32) * dim;
-                    ctx.fillRect(fx, fy, w, thick);
-                    // The web: spread three wide behind the ankle on the push, a single strip trailing when folded.
-                    if (open) ctx.fillRect(dir > 0 ? fx - 2 * w : fx, fy + thick, 3 * w, thick);
-                    else ctx.fillRect(fx - dir * w, fy + thick, w, thick);
+                    // Tiles like the rest of it: one at the ankle, then the web, spread three wide behind the ankle on
+                    // the push, a single tile trailing when folded.
+                    const tile = (x: number, y: number) => ctx.fillRect(x + gap, y + gap, w - gap, thick - gap);
+                    tile(fx, fy);
+                    if (open) for (let k = 0; k < 3; k++) tile((dir > 0 ? fx - 2 * w : fx) + k * w, fy + thick);
+                    else tile(fx - dir * w, fy + thick);
                 }
             }
         }
