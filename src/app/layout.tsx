@@ -4,10 +4,23 @@ import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import "./globals.css";
 
+const description = "Sin-En Huang — computer science and economics. Machine learning, data and web development.";
+
 export const metadata: Metadata = {
+  // Lets the link preview image be given as a full address, which link previews need.
+  metadataBase: new URL("https://hamchick.github.io"),
   title: "Sin-En Huang",
-  description: "Sin-En Huang — computer science and economics. Machine learning, data and web development.",
+  description,
   icons: { icon: "/images/duck.jpg" },
+  openGraph: {
+    type: "website",
+    siteName: "Sin-En Huang",
+    title: "Sin-En Huang",
+    description,
+    // A screenshot of the home page in the dark theme, kept in public/.
+    images: [{ url: "/og.png", width: 1200, height: 630, alt: "Sin-En Huang: CS × Economics" }],
+  },
+  twitter: { card: "summary_large_image" },
 };
 
 export const viewport: Viewport = {
