@@ -250,6 +250,39 @@ export class World {
     pointer = { x: 0, y: 0, speed: 0, active: false };
     /** Page content the koi steer around, in canvas space. */
     avoid: Box[] = [];
+    /**
+     * On the content pages only a strip of water along the top of the screen shows, this many pixels deep: koi and
+     * ducklings keep to it there. null for the whole pond, on the home page.
+     */
+    band: number | null = null;
+
+    /** Narrow the pond to a strip along the top, or open it back out with null. */
+    setBand(band: number | null) {
+        const entering = band !== null && this.band === null;
+        this.band = band;
+        if (!entering) return;
+        const { width: W } = this;
+        // Bring everyone up to the strip from out of sight, so they arrive in it within moments rather than
+        // minutes: ducklings paddle in from either side, koi rise from just beneath it.
+        for (const d of this.ducks) {
+            const fromLeft = Math.random() < 0.5;
+            d.x = fromLeft ? -d.length * 0.6 : W + d.length * 0.6;
+            d.y = band - rand(10, 18);
+            d.heading = fromLeft ? 0 : Math.PI;
+            d.facing = fromLeft ? 1 : -1;
+            d.view = "side";
+            d.trail = [];
+            // Paddling steadily, not drifting, until it's well into view.
+            d.speed = 28;
+            d.paddleUntil = this.time + rand(3, 5);
+        }
+        for (const k of this.koi) {
+            const hy = k.nodes[1];
+            if (hy < band) continue;
+            const shift = band + rand(0.2, 0.9) * k.length - hy;
+            for (let n = 0; n < KOI_NODES; n++) k.nodes[n * 2 + 1] += shift;
+        }
+    }
 
     resize(width: number, height: number) {
         const first = this.width === 0;
@@ -399,6 +432,8 @@ export class World {
      * a duck takes the roomiest spot it found.
      */
     placeDucks() {
+        // In the strip along the top they're already where they belong.
+        if (this.band !== null) return;
         const { width: W, height: H } = this;
         for (const d of this.ducks) {
             let best = this.duckRoom(d, d.x, d.y);
@@ -543,12 +578,14 @@ export class World {
         dx += push.x * (chasing || curious ? 0.5 : 1.8);
         dy += push.y * (chasing || curious ? 0.5 : 1.8);
 
-        // Let the body slip off-screen now and then, but always turn back.
-        const over = Math.max(-hx, hx - W, -hy, hy - H);
+        // Let the body slip off-screen now and then, but always turn back. On a content page the "bottom" is the
+        // foot of the strip of water along the top.
+        const floor = this.band ?? H;
+        const over = Math.max(-hx, hx - W, -hy, hy - floor);
         if (over > -L * 0.25) {
             const w = clamp((over + L * 0.25) / (L * 0.5), 0, 1) * 3.5;
             const toX = W / 2 - hx;
-            const toY = H / 2 - hy;
+            const toY = floor / 2 - hy;
             const d = Math.hypot(toX, toY) || 1;
             dx += (toX / d) * w;
             dy += (toY / d) * w;
@@ -686,7 +723,12 @@ export class World {
         dx += edge(d.x) - edge(W - d.x);
         // The side-on sprite stands up off the waterline, so the top edge counts from its head, which keeps it
         // out from under the site header too.
-        dy += edge(d.y - L) - edge(H - d.y);
+        if (this.band !== null) {
+            // In the strip along the top, a duckling rides near its lower edge, clear of the header above.
+            dy += clamp((this.band - 14 - d.y) / 12, -3, 3);
+        } else {
+            dy += edge(d.y - L) - edge(H - d.y);
+        }
 
         const maxTurn = (food ? 1.8 : 0.4) * dt;
         const turned = clamp(angleDiff(d.heading, Math.atan2(dy * DUCK_STEER_VERTICAL, dx)), -maxTurn, maxTurn);

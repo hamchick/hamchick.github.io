@@ -7,8 +7,7 @@ export const profile = {
   instagram: "https://www.instagram.com/ham_chick_/",
   cv: "/files/EnCV.pdf",
   focus: ["machine learning", "economics", "web development", "blockchain"],
-  intro:
-    "Computer science and economics graduate who likes turning messy data into models, and models into things people can actually use.",
+  intro: "Turning messy data into models, and models into things people use.",
 };
 
 export type TimelineItem = { title: string; org: string; place: string; period: string; href?: string; points?: string[] };

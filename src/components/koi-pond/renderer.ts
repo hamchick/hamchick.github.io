@@ -58,7 +58,7 @@ interface Palette {
     hi: Rgb[];
     /** Glyph brightness relative to the tile under it. */
     ink: number;
-    /** The white duck's plumage from shadow to lit, its bill, the outline that keeps it crisp, and its quack. */
+    /** The duckling's down from shadow to lit, its bill, the outline that keeps it crisp, and its quack. */
     duck: {
         shade: Rgb;
         base: Rgb;
