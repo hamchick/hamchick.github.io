@@ -1,7 +1,6 @@
 "use client";
 
-import { useIsHome, useScrolled } from "@/components/site";
-import { STRIP_DEPTH, STRIP_SLIM } from "@/components/strip";
+import { useIsHome, useScrolled, useStrip } from "@/components/site";
 import KoiPond, { BAND_TRANSITION_MS } from "./koi-pond";
 
 /**
@@ -13,7 +12,8 @@ import KoiPond, { BAND_TRANSITION_MS } from "./koi-pond";
 export function Pond() {
     const home = useIsHome();
     const scrolled = useScrolled();
-    const shown = home ? null : scrolled ? STRIP_SLIM : STRIP_DEPTH;
+    const strip = useStrip();
+    const shown = home ? null : scrolled ? strip.slim : strip.depth;
     return (
         <>
             {/*
@@ -33,7 +33,7 @@ export function Pond() {
                     className="h-full w-full transition-opacity"
                     style={{ opacity: !home && scrolled ? 0.35 : 1, transitionDuration: `${BAND_TRANSITION_MS}ms` }}
                 >
-                    <KoiPond band={home ? null : STRIP_DEPTH} className="h-full w-full" />
+                    <KoiPond band={home ? null : strip.depth} className="h-full w-full" />
                 </div>
             </div>
             {/* The edge of the strip: a hairline where the water ends and the page begins. */}

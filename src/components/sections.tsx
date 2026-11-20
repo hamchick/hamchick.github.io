@@ -4,7 +4,7 @@ import type { TimelineItem } from "@/data/profile";
 export const card = "rounded-2xl border border-line bg-card/85 shadow-sm backdrop-blur-md";
 
 export function Tag({ children }: { children: React.ReactNode }) {
-    return <span className="rounded-full border border-line px-2 py-0.5 font-mono text-[11px] text-muted">{children}</span>;
+    return <span className="rounded-full border border-line px-2 py-0.5 font-mono text-[0.6875rem] text-muted">{children}</span>;
 }
 
 export function SectionTitle({ index, children }: { index: string; children: React.ReactNode }) {
@@ -21,7 +21,7 @@ export function Timeline({ items }: { items: TimelineItem[] }) {
         <ol className="space-y-6">
             {items.map((item) => (
                 <li key={item.title + item.period} className="relative border-l border-line pl-5">
-                    <span className="absolute -left-[5px] top-2 size-2.5 rounded-full bg-accent" />
+                    <span className="absolute -left-[0.3125rem] top-2 size-2.5 rounded-full bg-accent" />
                     <div className="flex flex-wrap items-baseline justify-between gap-x-4">
                         <h4 className="font-medium">{item.title}</h4>
                         <span className="font-mono text-xs text-muted">{item.period}</span>

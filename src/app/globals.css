@@ -57,6 +57,22 @@
 
 html {
   scroll-behavior: smooth;
+  /* The strip of pond along the top of the content pages: header row plus water, and the header row alone. */
+  --strip-depth: 120px;
+  --strip-slim: 56px;
+}
+
+/*
+  On wider screens the whole site is set at four-fifths size: text and spacing are in rem, so they follow the root
+  font size, and the strip and the pond's ducklings are scaled to match (see components/strip.ts). Phones stay at
+  full size, where smaller text would be too small to read.
+*/
+@media (min-width: 768px) {
+  html {
+    font-size: 80%;
+    --strip-depth: 96px;
+    --strip-slim: 45px;
+  }
 }
 
 body {

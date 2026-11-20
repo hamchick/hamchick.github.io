@@ -18,7 +18,7 @@ export function SiteHeader() {
     if (home) return null;
     return (
         <header className="fixed inset-x-0 top-0 z-30">
-            <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-4 sm:px-6">
+            <div className="mx-auto flex h-(--strip-slim) max-w-5xl items-center justify-between px-4 sm:px-6">
                 <Link href="/" className={`${pill} font-mono font-semibold`} title="Back to the pond">
                     hamchick<span className="text-accent">.</span>
                 </Link>

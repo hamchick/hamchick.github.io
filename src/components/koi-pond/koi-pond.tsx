@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useEffectEvent, useRef, useState } from "react";
+import { SCALED_FROM_PX, SITE_SCALE } from "@/components/strip";
 import { KoiRenderer } from "./renderer";
 import { World, type Box } from "./world";
 
@@ -133,7 +134,12 @@ class PondEngine {
     private resize() {
         const rect = this.canvas.getBoundingClientRect();
         if (rect.width < 1 || rect.height < 1) return;
-        this.renderer.resize(rect.width, rect.height, Math.min(window.devicePixelRatio || 1, 2));
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        this.renderer.resize(rect.width, rect.height, dpr);
+        // Ducklings follow the site's four-fifths sizing on wider screens, rounded to whole device pixels so the
+        // pixel art stays crisp. Only the first resize seeds them, so this only needs to be right then.
+        const duckPixel = rect.width >= SCALED_FROM_PX ? 3 * SITE_SCALE : 3;
+        this.world.duckPixel = Math.max(1, Math.round(duckPixel * dpr)) / dpr;
         this.world.resize(rect.width, rect.height);
         this.measureContent();
         this.report();

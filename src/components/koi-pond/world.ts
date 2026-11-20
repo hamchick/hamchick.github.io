@@ -256,6 +256,12 @@ export class World {
      */
     band: number | null = null;
 
+    /**
+     * Size of one duckling sprite pixel, in CSS pixels. Set before the first resize; the engine picks a size that is a
+     * whole number of device pixels, so the pixel art stays crisp.
+     */
+    duckPixel = 3;
+
     /** Narrow the pond to a strip along the top, or open it back out with null. */
     setBand(band: number | null) {
         const entering = band !== null && this.band === null;
@@ -345,8 +351,8 @@ export class World {
 
         // One duck, or a pair on wide screens, small beside the grown koi so they stay in the background.
         this.ducks = [];
-        // Whole screen pixels per sprite pixel keep the pixel art crisp: a duckling about 42px wide.
-        const pixel = 3;
+        // A duckling about 42px wide on a phone, a fifth smaller on a wider screen (see duckPixel).
+        const pixel = this.duckPixel;
         for (let i = 0; i < (W >= 1024 ? 2 : 1); i++) {
             const heading = rand(0, TAU);
             this.ducks.push({

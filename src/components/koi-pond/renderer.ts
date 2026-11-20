@@ -661,6 +661,10 @@ export class KoiRenderer {
         const outline = this.style(packRgb(look.outline));
         // Seen through a little water: the bill's orange, only slightly muted.
         const feet = mix(look.bill, palette.bg, 0.2);
+        // Positions land on whole device pixels. A sprite pixel is a whole number of device pixels too (see
+        // World.duckPixel), so every edge of the pixel art falls on the screen's own pixel grid and stays crisp.
+        const dpr = this.dpr;
+        const snap = (v: number) => Math.round(v * dpr) / dpr;
 
         for (const d of world.ducks) {
             const p = d.pixel;
@@ -686,13 +690,11 @@ export class KoiRenderer {
             const squeeze = flipT < 1 ? Math.max(0.2, Math.abs(Math.cos(Math.PI * flipT))) : 1;
             const dir = flipT < 0.5 ? -d.facing : d.facing;
             const pw = p * squeeze;
-            const cx = Math.round(d.x);
+            const cx = snap(d.x);
             // The body lifts a screen pixel with each stroke of either foot, and rides the swell slowly when it
             // glides, so even a duck at rest still floats rather than sits.
             const swell = Math.sin(world.time * 1.3 + d.id * 2.1) * 0.7 * (1 - d.beat);
-            const top = Math.round(
-                d.y - DUCK_WATERLINE * p - Math.max(0, Math.sin(d.paddle * 2)) * effort + swell
-            );
+            const top = snap(d.y - DUCK_WATERLINE * p - Math.max(0, Math.sin(d.paddle * 2)) * effort + swell);
             // The body isn't rigid. The head reaches forward on each push and nods with the stroke; in a turn it leads
             // the way up or down while the tail trails the other way, and the tail flicks after each stroke.
             const push = Math.max(0, Math.sin(d.paddle * 2));
@@ -709,8 +711,8 @@ export class KoiRenderer {
                 const tail = c < DUCK_TAIL_COLS && r < DUCK_TAIL_ROWS;
                 const left = cx + (dir > 0 ? c - W / 2 : W / 2 - 1 - c) * pw;
                 const dx = head ? reach : 0;
-                const x0 = Math.round(left) + dx;
-                const x1 = Math.round(left + pw) + dx;
+                const x0 = snap(left) + dx;
+                const x1 = snap(left + pw) + dx;
                 const y0 = top + r * p + (head ? headDrop : tail ? tailDrop : 0);
                 // When the head lifts, its bottom row stretches down to the neck, so they never come apart.
                 const h = head && r === DUCK_HEAD_ROWS - 1 ? p + Math.max(0, -headDrop) : p;

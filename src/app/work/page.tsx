@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { PageEnter, Reveal } from "@/components/motion";
 import { card, SectionTitle, Tag } from "@/components/sections";
-import { STRIP_DEPTH } from "@/components/strip";
 import { profile, projects, thesis } from "@/data/profile";
 
 export const metadata: Metadata = {
@@ -13,7 +12,7 @@ export default function WorkPage() {
     return (
         <PageEnter className="mx-auto max-w-3xl space-y-20 px-4 pb-20 sm:px-6">
             {/* Clears the strip of pond along the top. */}
-            <div aria-hidden="true" style={{ height: STRIP_DEPTH - 40 }} />
+            <div aria-hidden="true" className="h-[calc(var(--strip-depth)-2.5rem)]" />
 
             <section>
                 <SectionTitle index="01">Projects</SectionTitle>
