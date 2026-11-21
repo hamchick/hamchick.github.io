@@ -7,8 +7,9 @@
  *   FRONT   three-quarters toward the viewer, swimming down the screen: both eyes and the bill show
  *   BACK    three-quarters away, swimming up the screen: mostly the back of the head, with the near eye and the
  *           bill just showing past the cheek
- *   DABBLE  tipped forward, tail to the sky and head under, for feeding (a frame of its own, since rotating
- *           pixel art leaves it ragged)
+ *   DABBLE  tipped forward, tail to the sky and head under, for foraging while idle (a frame of its own, since
+ *           rotating pixel art leaves it ragged)
+ *   PECK    still afloat, hunched forward with the head down at the water and the bill in it, for taking a pellet
  *
  *   W  down, lit from above        B  bill, with b its shaded underside
  *   G  folded wing                 E  eye
@@ -72,6 +73,21 @@ export const DUCK_DABBLE = [
     ".....SWWWWWWWW",
     "......SSWWWWWW",
     ".........WWWbB",
+];
+
+export const DUCK_PECK = [
+    "..............",
+    "..............",
+    "..............",
+    "..............",
+    "W......WW.....",
+    "WW...WWWWW....",
+    "WWW.WWWWWWWWW.",
+    "WWWWWWGGGWWWWW",
+    "WWWWWGGGGGWWEW",
+    ".WWWWWGGGWWWWB",
+    "..SWWWWWWWWWbB",
+    "...SSSSSSSSS..",
 ];
 
 export const DUCK_SPRITE_WIDTH = DUCK_SIDE[0].length;
