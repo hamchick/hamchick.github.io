@@ -6,6 +6,7 @@ export const RIPPLE_SPEED = 52;
 
 export const clamp = (v: number, lo: number, hi: number) => (v < lo ? lo : v > hi ? hi : v);
 const rand = (lo: number, hi: number) => lo + Math.random() * (hi - lo);
+const pick = <T,>(items: T[]) => items[Math.floor(Math.random() * items.length)];
 
 export function smoothstep(e0: number, e1: number, x: number) {
     const t = clamp((x - e0) / (e1 - e0), 0, 1);
@@ -124,6 +125,10 @@ export interface Duck {
     food: Pellet | null;
     /** 0..1 while the bill dips into the water. */
     dip: number;
+    /** When it last took a pellet: it pecks at it a few times, then lifts its head to swallow. */
+    peckAt: number;
+    /** Pecks made so far at the current pellet, so each one can splash. */
+    pecks: number;
     dipAt: number;
     nextDip: number;
     /** Where the duck has been lately, oldest first, for drawing the V of its wake. */
@@ -218,12 +223,19 @@ const DUCK_RANGE = 460;
 export const DUCK_FLIP_TIME = 0.28;
 /** How long a dabble lasts: tipping forward, head under, and back up. */
 export const DUCK_DIP_TIME = 1.4;
+/** Taking a pellet: this many quick pecks at the surface, over this long, then a lift of the head to swallow. */
+export const DUCK_PECKS = 2;
+export const DUCK_PECK_TIME = 0.9;
+export const DUCK_GULP_TIME = 0.35;
 /** How long a wake stays on the water behind a duck, and how often its path is sampled. */
 export const TRAIL_LIFE = 6;
 const TRAIL_EVERY = 0.2;
 export const QUACK_LIFE = 2.4;
-/** Chance of a quack on each pellet a duck takes. */
+/** Chance of a sound on each pellet a duck takes. */
 const QUACK_ON_FOOD = 0.5;
+/** What a duck says over a pellet, and now and then to itself. */
+const EATING_SOUNDS = ["quack!", "nom nom"];
+const IDLE_SOUNDS = ["quack", "peep"];
 /** How fast a gliding duck loses speed, per second. */
 const DUCK_DRAG = 1.3;
 /** Average of a foot's push over a stroke, max(0, sin) averaged: scales the push so speed settles where intended. */
@@ -376,6 +388,8 @@ export class World {
                 food: null,
                 dip: 0,
                 dipAt: -Infinity,
+                peckAt: -Infinity,
+                pecks: DUCK_PECKS,
                 nextDip: rand(6, 16),
                 trail: [],
                 nextTrail: 0,
@@ -763,7 +777,9 @@ export class World {
         const paddling = food !== null || crowded > 0.2 || time < d.paddleUntil;
         d.beat += ((paddling ? 1 : 0) - d.beat) * Math.min(1, dt * 4);
         // The speed it settles at while paddling, and how quick the strokes come.
-        const target = food ? 30 + L * 0.12 : 12 + L * 0.05 + crowded * 22;
+        // It all but stops to peck at a pellet it has just taken.
+        const pecking = time - d.peckAt < DUCK_PECK_TIME;
+        const target = (food ? 30 + L * 0.12 : 12 + L * 0.05 + crowded * 22) * (pecking ? 0.3 : 1);
         if (paddling) d.paddle += dt * (food ? 9 : 5.5 + crowded * 3);
         // Each foot's push back is a surge forward; between pushes, and through a glide, drag bleeds speed away.
         const thrust = Math.max(0, Math.sin(d.paddle * 2)) * d.beat;
@@ -784,20 +800,27 @@ export class World {
             this.ripples.push({ x: billX, y: billY, born: time, strength: 0.4 });
             this.bites.push({ x: billX, y: billY, born: time });
             d.keen -= 0.35;
-            d.dipAt = time;
+            d.peckAt = time;
+            d.pecks = 0;
             d.nextDip = time + rand(6, 14);
-            if (Math.random() < QUACK_ON_FOOD) this.quack(d, Math.random() < 0.3 ? "quack quack!" : "quack!");
+            if (Math.random() < QUACK_ON_FOOD) this.quack(d, pick(EATING_SOUNDS));
         } else if (!food && time > d.nextDip) {
             // Now and then, while idling, the duck dabbles at the surface.
             d.dipAt = time;
             this.ripples.push({ x: billX, y: billY, born: time, strength: 0.15 });
             d.nextDip = time + rand(8, 20);
         }
+        // Each peck after the first splashes a little where the bill meets the water.
+        const peck = Math.floor(((time - d.peckAt) / DUCK_PECK_TIME) * DUCK_PECKS);
+        if (peck > d.pecks && peck < DUCK_PECKS) {
+            d.pecks = peck;
+            this.ripples.push({ x: billX, y: billY, born: time, strength: 0.2 });
+        }
         const dipAge = time - d.dipAt;
         d.dip = dipAge < DUCK_DIP_TIME ? Math.sin((Math.PI * dipAge) / DUCK_DIP_TIME) : 0;
 
         // Left to itself, a duck quacks once in a long while.
-        if (time > d.nextQuack) this.quack(d, "quack");
+        if (time > d.nextQuack) this.quack(d, pick(IDLE_SOUNDS));
 
         if (time > d.nextTrail) {
             d.trail.push({ x: d.x, y: d.y, heading: d.heading, speed: d.speed, born: time });

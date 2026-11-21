@@ -3,6 +3,7 @@ import {
     DUCK_BACK,
     DUCK_DABBLE,
     DUCK_FRONT,
+    DUCK_PECK,
     DUCK_HEAD_FROM,
     DUCK_HEAD_ROWS,
     DUCK_SIDE,
@@ -17,6 +18,9 @@ import {
     angleDiff,
     clamp,
     DUCK_FLIP_TIME,
+    DUCK_GULP_TIME,
+    DUCK_PECK_TIME,
+    DUCK_PECKS,
     QUACK_LIFE,
     TRAIL_LIFE,
     hash3,
@@ -646,7 +650,8 @@ export class KoiRenderer {
      * legible at a small size. It shows its side, its face or its back depending on which way it swims, and moves
      * like it is paddling: feet stroking under the water, the body lifting with each stroke, the head reaching
      * forward on every push, leading into turns while the tail trails after, and it flips over when it turns round.
-     * It switches to a tail-up frame to dabble. What sits below the waterline shows faintly through the water.
+     * It switches to a tail-up frame to dabble, and to a head-down frame to peck at a pellet, a few quick pecks and
+     * then a lift of the head to swallow. What sits below the waterline shows faintly through the water.
      *
      * Each sprite pixel is a solid tile with a faint seam between it and its neighbours, like grout between tiles:
      * enough to echo the tiled koi and name up close, without breaking so small a sprite into a busy mesh (cut-out
@@ -668,10 +673,17 @@ export class KoiRenderer {
             const p = d.pixel;
             // A seam is one device pixel: as fine a line as the screen can draw.
             const seam = 1 / dpr;
-            const dabbling = d.dip > 0.3;
-            const frame = dabbling
-                ? DUCK_DABBLE
-                : d.view === "front"
+            const peckAge = world.time - d.peckAt;
+            // Head down for the first part of each peck, back up for the rest.
+            const pecking = peckAge < DUCK_PECK_TIME && ((peckAge / DUCK_PECK_TIME) * DUCK_PECKS) % 1 < 0.5;
+            const gulping = peckAge >= DUCK_PECK_TIME && peckAge < DUCK_PECK_TIME + DUCK_GULP_TIME;
+            const dabbling = d.dip > 0.3 && !pecking;
+            const still = dabbling || pecking;
+            const frame = pecking
+                ? DUCK_PECK
+                : dabbling
+                  ? DUCK_DABBLE
+                  : d.view === "front"
                   ? DUCK_FRONT
                   : d.view === "back"
                     ? DUCK_BACK
@@ -697,11 +709,12 @@ export class KoiRenderer {
             // The body isn't rigid. The head reaches forward on each push and nods with the stroke; in a turn it leads
             // the way up or down while the tail trails the other way, and the tail flicks after each stroke.
             const push = Math.max(0, Math.sin(d.paddle * 2));
-            const reach = dabbling ? 0 : Math.round(effort * (0.8 * stroke + 1.4 * push)) * dir;
+            const reach = still ? 0 : Math.round(effort * (0.8 * stroke + 1.4 * push)) * dir;
             // Positive while the bill swings down the screen.
-            const lean = dabbling ? 0 : clamp(d.turn * dir * 4, -2, 2);
-            const headDrop = Math.round(lean);
-            const tailDrop = Math.round(-lean * 0.6) + (dabbling ? 0 : Math.round(Math.sin(d.paddle + 1.2) * effort));
+            const lean = still ? 0 : clamp(d.turn * dir * 4, -2, 2);
+            // Swallowing, the head tips up a pixel.
+            const headDrop = Math.round(lean) - (gulping ? p : 0);
+            const tailDrop = Math.round(-lean * 0.6) + (still ? 0 : Math.round(Math.sin(d.paddle + 1.2) * effort));
 
             // Where sprite pixel (c, r) lands on screen: mirrored to face left, narrowed while turning, and nudged
             // where it belongs to the head (top rows, front) or the tail tuft (top rows, back).
