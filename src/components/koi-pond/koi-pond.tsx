@@ -145,6 +145,8 @@ class PondEngine {
         // pixel art stays crisp. Only the first resize seeds them, so this only needs to be right then.
         const duckPixel = rect.width >= SCALED_FROM_PX ? 3 * SITE_SCALE : 3;
         this.world.duckPixel = Math.max(1, Math.round(duckPixel * dpr)) / dpr;
+        // The mother duck a size up from her ducklings.
+        this.world.motherPixel = Math.max(1, Math.round(duckPixel * 1.4 * dpr)) / dpr;
         this.world.resize(rect.width, rect.height);
         this.measureContent();
         this.report();

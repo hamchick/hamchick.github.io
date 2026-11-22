@@ -73,6 +73,8 @@ export interface Palette {
         quack: Rgb;
         alpha: number;
     };
+    /** The mother duck's white plumage, from shadow to lit. Her bill and quack are the ducklings'. */
+    mother: { shade: Rgb; base: Rgb };
 }
 
 export const DARK: Palette = {
@@ -109,6 +111,7 @@ export const DARK: Palette = {
         quack: [255, 210, 80],
         alpha: 0.96,
     },
+    mother: { shade: [150, 152, 166], base: [238, 234, 226] },
 };
 
 // Paper page: tiles are pale washes of the skin colour with dark glyphs etched on top.
@@ -145,6 +148,8 @@ export const LIGHT: Palette = {
         quack: [178, 112, 10],
         alpha: 0.94,
     },
+    // White on paper needs a grey edge to hold its shape against the pale page.
+    mother: { shade: [128, 126, 122], base: [214, 210, 202] },
 };
 
 // Dense glyphs etched into each skin tile, sparse where it catches the light.
@@ -692,10 +697,9 @@ export class KoiRenderer {
      */
     private drawDucks(world: World) {
         const { ctx, palette, cellDim } = this;
-        const look = palette.duck;
         const W = DUCK_SPRITE_WIDTH;
         // Seen through a little water: the bill's orange, only slightly muted.
-        const feet = mix(look.bill, palette.bg, 0.2);
+        const feet = mix(palette.duck.bill, palette.bg, 0.2);
         // Positions land on whole device pixels. A sprite pixel is a whole number of device pixels too (see
         // World.duckPixel), so every edge of the pixel art falls on the screen's own pixel grid and stays crisp.
         const dpr = this.dpr;
@@ -703,6 +707,7 @@ export class KoiRenderer {
 
         for (const d of world.ducks) {
             const p = d.pixel;
+            const look = d.mother ? { ...palette.duck, ...palette.mother } : palette.duck;
             // A seam is one device pixel: as fine a line as the screen can draw.
             const seam = 1 / dpr;
             const peckAge = world.time - d.peckAt;
@@ -904,6 +909,8 @@ export class KoiRenderer {
                         const py = cy + cos * half * side;
                         const i = this.cellIndex(px, py);
                         if (i < 0 || cellGlyph[i]) continue;
+                        // On the home page the V stays in the ducklings' strip, above its edge.
+                        if (this.koiCeiling > 0 && py >= Math.ceil(this.koiCeiling / ch) * ch) continue;
                         // Each arm runs back and outward from the duck.
                         const ax = -cos - sin * spread * side;
                         const ay = -sin + cos * spread * side;
@@ -972,13 +979,15 @@ export class KoiRenderer {
     private diffuse(dt: number) {
         const { cols, rows, energy, energyTmp: tmp } = this;
         const decay = Math.exp(-dt * 1.1);
+        // On the home page the edge of the ducklings' strip is a wall: wakes below it don't spread up into it.
+        const edge = this.koiCeiling > 0 ? Math.ceil(this.koiCeiling / this.ch) : -1;
         for (let r = 0; r < rows; r++) {
             for (let c = 0; c < cols; c++) {
                 const i = r * cols + c;
                 const l = c > 0 ? energy[i - 1] : energy[i];
                 const rt = c < cols - 1 ? energy[i + 1] : energy[i];
-                const u = r > 0 ? energy[i - cols] : energy[i];
-                const d = r < rows - 1 ? energy[i + cols] : energy[i];
+                const u = r > 0 && r !== edge ? energy[i - cols] : energy[i];
+                const d = r < rows - 1 && r + 1 !== edge ? energy[i + cols] : energy[i];
                 tmp[i] = (energy[i] * 4 + l + rt + u + d) * 0.125 * decay;
             }
         }
@@ -1006,7 +1015,10 @@ export class KoiRenderer {
     /** Expanding rings drawn as ASCII circles: the glyph follows the ring's tangent. */
     private drawRipples(world: World) {
         const { cw, ch, cols, rows, cellGlyph, palette } = this;
+        // On the home page a ring stays on its own side of the strip's edge, as if the edge were a bank.
+        const edge = this.koiCeiling > 0 ? Math.ceil(this.koiCeiling / ch) : -1;
         for (const rp of world.ripples) {
+            const above = edge >= 0 && rp.y < edge * ch;
             const age = world.time - rp.born;
             const life = rippleLife(rp);
             const fade = Math.pow(1 - age / life, 1.5) * rp.strength;
@@ -1023,6 +1035,7 @@ export class KoiRenderer {
                     for (let c = c0; c <= c1; c++) {
                         const i = r * cols + c;
                         if (cellGlyph[i]) continue;
+                        if (edge >= 0 && r < edge !== above) continue;
                         const dx = c * cw + cw / 2 - rp.x;
                         const dy = r * ch + ch / 2 - rp.y;
                         const d = Math.hypot(dx, dy);

@@ -129,8 +129,8 @@ export function FeedHint() {
                     exit={{ opacity: 0, transition: { duration: 0.4 } }}
                     className="pointer-events-none fixed left-4 top-4 z-20 max-w-[calc(100%-5rem)] rounded-2xl border border-line bg-card/80 px-3 py-1.5 font-mono text-xs text-muted shadow-sm backdrop-blur sm:left-auto sm:right-6 sm:top-auto sm:bottom-6 sm:max-w-none sm:rounded-full"
                 >
-                    <span className="sm:hidden">tap the water to feed the koi · ducklings may steal some</span>
-                    <span className="hidden sm:inline">click the water to feed the koi — the ducklings may steal some</span>
+                    <span className="sm:hidden">tap the water to feed the koi · up top, the ducklings</span>
+                    <span className="hidden sm:inline">click the water to feed the koi, or up top, the ducklings</span>
                 </motion.div>
             )}
         </AnimatePresence>

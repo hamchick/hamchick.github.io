@@ -98,6 +98,10 @@ export type DuckView = "side" | "front" | "back";
  */
 export interface Duck {
     id: number;
+    /** The white mother duck leading the line; the rest are her yellow ducklings. */
+    mother: boolean;
+    /** Index in World.ducks of the duck this one follows in line, or null for the leader. */
+    follows: number | null;
     x: number;
     y: number;
     /** Size of one sprite pixel, in screen pixels. */
@@ -236,6 +240,8 @@ const QUACK_ON_FOOD = 0.5;
 /** What a duck says over a pellet, and now and then to itself. */
 const EATING_SOUNDS = ["quack!", "nom nom"];
 const IDLE_SOUNDS = ["quack", "peep"];
+/** A duckling keeps this far behind the duck ahead of it in line, in their two lengths added together. */
+const FAMILY_GAP = 0.6;
 /** How fast a gliding duck loses speed, per second. */
 const DUCK_DRAG = 1.3;
 /** Average of a foot's push over a stroke, max(0, sin) averaged: scales the push so speed settles where intended. */
@@ -284,16 +290,23 @@ export class World {
         return this.band === null ? (this.duckStrip ?? 0) : 0;
     }
 
-    /** Keep the ducklings to a strip along the top on the home page too. Ones out in the pond start off in it. */
+    /** Keep the ducklings to a strip along the top on the home page too. A family out in the pond starts off in it. */
     setDuckStrip(depth: number | null) {
         this.duckStrip = depth;
-        if (depth === null) return;
+        if (depth === null || this.ducks.every((d) => d.y <= depth)) return;
+        this.lineUp(rand(this.width * 0.3, this.width * 0.7), depth, Math.random() < 0.5 ? 1 : -1);
+    }
+
+    /** Put the family in a line along the strip: the mother at x, her ducklings strung out behind her. */
+    private lineUp(x: number, band: number, facing: number) {
+        let at = x;
         for (const d of this.ducks) {
-            if (d.y <= depth) continue;
-            d.x = rand(this.width * 0.15, this.width * 0.85);
-            d.y = depth - rand(10, 18);
-            d.heading = Math.random() < 0.5 ? 0 : Math.PI;
-            d.facing = Math.cos(d.heading) >= 0 ? 1 : -1;
+            const ahead = d.follows === null ? null : this.ducks[d.follows];
+            if (ahead) at -= facing * (d.length + ahead.length) * FAMILY_GAP;
+            d.x = at;
+            d.y = band - rand(10, 16);
+            d.heading = facing > 0 ? 0 : Math.PI;
+            d.facing = facing;
             d.view = "side";
             d.trail = [];
         }
@@ -304,6 +317,8 @@ export class World {
      * whole number of device pixels, so the pixel art stays crisp.
      */
     duckPixel = 3;
+    /** The same for the mother duck, a size up. */
+    motherPixel = 4;
 
     /** Narrow the pond to a strip along the top, or open it back out with null. */
     setBand(band: number | null) {
@@ -312,20 +327,17 @@ export class World {
         if (!entering) return;
         const { width: W } = this;
         // Bring everyone up to the strip from out of sight, so they arrive in it within moments rather than
-        // minutes: ducklings paddle in from either side, koi rise from just beneath it.
-        for (const d of this.ducks) {
-            // Already in the strip from the home page: they just paddle on.
-            if (d.y <= band) continue;
+        // minutes: the family paddles in from one side in a line, koi rise from just beneath it. A family already
+        // in the strip from the home page just paddles on.
+        if (this.ducks.some((d) => d.y > band)) {
             const fromLeft = Math.random() < 0.5;
-            d.x = fromLeft ? -d.length * 0.6 : W + d.length * 0.6;
-            d.y = band - rand(10, 18);
-            d.heading = fromLeft ? 0 : Math.PI;
-            d.facing = fromLeft ? 1 : -1;
-            d.view = "side";
-            d.trail = [];
-            // Paddling steadily, not drifting, until it's well into view.
-            d.speed = 28;
-            d.paddleUntil = this.time + rand(3, 5);
+            const lead = this.ducks[0];
+            this.lineUp(fromLeft ? -lead.length * 0.6 : W + lead.length * 0.6, band, fromLeft ? 1 : -1);
+            for (const d of this.ducks) {
+                // Paddling steadily, not drifting, until it's well into view.
+                d.speed = 28;
+                d.paddleUntil = this.time + rand(3, 5);
+            }
         }
         for (const k of this.koi) {
             const hy = k.nodes[1];
@@ -394,14 +406,18 @@ export class World {
             });
         }
 
-        // One duck, or a pair on wide screens, small beside the grown koi so they stay in the background.
+        // A mother duck and her ducklings in a line behind her: two of them on a phone, three on wider screens.
+        // Small beside the grown koi, so they stay in the background.
         this.ducks = [];
         // A duckling about 42px wide on a phone, a fifth smaller on a wider screen (see duckPixel).
-        const pixel = this.duckPixel;
-        for (let i = 0; i < (W >= 1024 ? 2 : 1); i++) {
+        for (let i = 0; i < 1 + (W >= 1024 ? 3 : 2); i++) {
             const heading = rand(0, TAU);
+            const mother = i === 0;
+            const pixel = mother ? this.motherPixel : this.duckPixel;
             this.ducks.push({
                 id: i + 1,
+                mother,
+                follows: mother ? null : i - 1,
                 x: rand(W * 0.15, W * 0.85),
                 y: rand(H * 0.15, H * 0.85),
                 pixel,
@@ -752,17 +768,33 @@ export class World {
             dy += (ty / dist) * 3;
         }
 
+        // A duckling with no food in view keeps its place in line: a little way behind the duck ahead, going her way.
+        const ahead = d.follows === null ? null : this.ducks[d.follows];
+        let lag = 0;
+        if (ahead && !food) {
+            const gap = (L + ahead.length) * FAMILY_GAP;
+            const tx = ahead.x - Math.cos(ahead.heading) * gap - d.x;
+            const ty = ahead.y - Math.sin(ahead.heading) * gap - d.y;
+            lag = Math.hypot(tx, ty);
+            const pull = clamp(lag / gap, 0, 1.5);
+            const ux = tx / (lag || 1);
+            const uy = ty / (lag || 1);
+            dx = Math.cos(d.heading) * 0.4 + Math.cos(ahead.heading) * (1 - pull * 0.5) + ux * pull * 2.5;
+            dy = Math.sin(d.heading) * 0.4 + Math.sin(ahead.heading) * (1 - pull * 0.5) + uy * pull * 2.5;
+        }
+
         for (const other of this.ducks) {
             if (other === d) continue;
             const ox = d.x - other.x;
             const oy = d.y - other.y;
             const dist = Math.hypot(ox, oy) || 1;
             // Room to paddle, but the pair never wanders far apart.
-            const room = (L + other.length) * 0.8;
+            // Family keep close, just not on top of each other; the line keeps them together.
+            const room = (L + other.length) * 0.45;
             if (dist < room) {
                 dx += (ox / dist) * (1 - dist / room) * 2.5;
                 dy += (oy / dist) * (1 - dist / room) * 2.5;
-            } else if (dist > L * 6 && !food) {
+            } else if (dist > L * 6 && !food && d.follows === null && this.duckBand === null) {
                 dx -= (ox / dist) * 0.3;
                 dy -= (oy / dist) * 0.3;
             }
@@ -812,12 +844,24 @@ export class World {
             d.paddleUntil = time + rand(1.2, 2.6);
             d.nextPaddle = d.paddleUntil + rand(1.5, 4);
         }
-        const paddling = food !== null || crowded > 0.2 || time < d.paddleUntil;
+        const following = ahead !== null && !food;
+        const paddling =
+            food !== null ||
+            crowded > 0.2 ||
+            time < d.paddleUntil ||
+            (ahead !== null && following && (lag > L * 0.3 || ahead.beat > 0.5));
         d.beat += ((paddling ? 1 : 0) - d.beat) * Math.min(1, dt * 4);
         // The speed it settles at while paddling, and how quick the strokes come.
         // It all but stops to peck at a pellet it has just taken.
         const pecking = time - d.peckAt < DUCK_PECK_TIME;
-        const target = (food ? 30 + L * 0.12 : 12 + L * 0.05 + crowded * 22) * (pecking ? 0.3 : 1);
+        // In line, a duckling matches the duck ahead and hurries to close a gap.
+        const cruise =
+            ahead !== null && following
+                ? clamp(ahead.speed * 0.9 + lag * 0.7, 4, 50)
+                : food
+                  ? 30 + L * 0.12
+                  : 12 + L * 0.05 + crowded * 22;
+        const target = cruise * (pecking ? 0.3 : 1);
         if (paddling) d.paddle += dt * (food ? 9 : 5.5 + crowded * 3);
         // Each foot's push back is a surge forward; between pushes, and through a glide, drag bleeds speed away.
         const thrust = Math.max(0, Math.sin(d.paddle * 2)) * d.beat;
@@ -858,7 +902,7 @@ export class World {
         d.dip = dipAge < DUCK_DIP_TIME ? Math.sin((Math.PI * dipAge) / DUCK_DIP_TIME) : 0;
 
         // Left to itself, a duck quacks once in a long while.
-        if (time > d.nextQuack) this.quack(d, pick(IDLE_SOUNDS));
+        if (time > d.nextQuack) this.quack(d, d.mother ? "quack" : pick(IDLE_SOUNDS));
 
         if (time > d.nextTrail) {
             d.trail.push({ x: d.x, y: d.y, heading: d.heading, speed: d.speed, born: time });
