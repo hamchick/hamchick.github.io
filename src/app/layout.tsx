@@ -11,7 +11,6 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://hamchick.github.io"),
   title: "Hsin-En Huang",
   description,
-  icons: { icon: "/images/duck.jpg" },
   openGraph: {
     type: "website",
     siteName: "Hsin-En Huang",
