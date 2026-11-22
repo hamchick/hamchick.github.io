@@ -219,7 +219,7 @@ class PondEngine {
             for (let i = 0; i < 240; i++) this.world.step(STEP);
         }
         this.measureContent();
-        this.renderer.render(this.world, STEP);
+        this.renderer.render(this.world, STEP, true);
         this.report();
     }
 

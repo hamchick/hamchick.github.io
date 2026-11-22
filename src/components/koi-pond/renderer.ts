@@ -40,6 +40,8 @@ export type Rgb = [number, number, number];
 
 // How visible a koi stays while it swims under page content.
 const DIM_UNDER_CONTENT = 0.15;
+// How visible the koi are in the strip along the top of a content page, so they don't crowd the ducklings' water.
+const KOI_IN_STRIP = 0.45;
 
 export interface Palette {
     /** Page background, which tiles are mixed toward. */
@@ -266,6 +268,8 @@ export class KoiRenderer {
     private hitSeg = 0;
     /** Top of the koi's water this frame (see World.koiCeiling). */
     private koiCeiling = 0;
+    /** Eases between 1 and KOI_IN_STRIP as the pond narrows to the strip or opens back out. */
+    private koiFade = 1;
 
     constructor(canvas: HTMLCanvasElement) {
         const ctx = canvas.getContext("2d");
@@ -324,7 +328,8 @@ export class KoiRenderer {
         }
     }
 
-    render(world: World, dt: number) {
+    /** Draw a frame. `still` marks a single held frame (reduced motion), which shows everything settled at once. */
+    render(world: World, dt: number, still = false) {
         const { ctx, dpr, cols } = this;
         if (cols === 0) return;
 
@@ -332,6 +337,8 @@ export class KoiRenderer {
         this.cellTileAlpha.fill(0);
         this.cellShadow.fill(0);
         this.koiCeiling = world.koiCeiling;
+        const fadeTo = world.band === null ? 1 : KOI_IN_STRIP;
+        this.koiFade = still ? fadeTo : this.koiFade + (fadeTo - this.koiFade) * Math.min(1, dt * 3);
         // Deeper koi first, so the ones near the surface glide over them.
         for (const k of [...world.koi].sort((a, b) => a.depth - b.depth)) this.rasterizeKoi(k, world.time);
         this.fadeUnderStrip();
@@ -531,7 +538,7 @@ export class KoiRenderer {
         // Near the surface a koi is brighter and its shadow falls farther away on the floor.
         const shadowDc = Math.round((L * 0.07 * k.depth) / cw) + 1;
         const shadowDr = Math.round((L * 0.05 * k.depth) / ch) + 1;
-        const dim = palette.alpha * (palette.depthFloor + (1 - palette.depthFloor) * k.depth);
+        const dim = palette.alpha * (palette.depthFloor + (1 - palette.depthFloor) * k.depth) * this.koiFade;
         const [tile0, tile1] = palette.tile;
         const hit = this.hit;
 
