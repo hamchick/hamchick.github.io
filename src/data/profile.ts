@@ -1,18 +1,45 @@
 // All page content lives here, so updating the site is mostly editing this file.
 
 export const profile = {
-  name: "Sin-En Huang",
+  name: "Hsin-En Huang",
   email: "chickenhamgod@gmail.com",
   github: "https://github.com/hamchick",
   instagram: "https://www.instagram.com/ham_chick_/",
-  cv: "/files/EnCV.pdf",
-  focus: ["machine learning", "economics", "web development", "blockchain"],
-  intro: "Turning messy data into models, and models into things people use.",
+  // No CV link until there's a current one.
+  cv: null as string | null,
+  focus: ["LLM agents", "machine learning", "finance", "web development", "Japanese"],
+  intro: "Building LLM assistants at a bank. Usually halfway through learning something else.",
 };
 
 export type TimelineItem = { title: string; org: string; place: string; period: string; href?: string; points?: string[] };
 
 export const experience: TimelineItem[] = [
+  {
+    title: "LLM Engineer",
+    org: "CTBC Bank",
+    place: "Taipei, Taiwan",
+    period: "Jun 2025 – Present",
+    href: "https://www.ctbcbank.com/",
+    points: [
+      "Designed and built the core of an in-house LLM assistant that the bank's relationship managers use to search internal knowledge, look up a client and screen client lists in plain language.",
+      "Halved response time by moving from Langflow and LangGraph to the OpenAI Agents SDK, precomputing heavy work overnight, and racing a small model against a large one.",
+      "Built the production side: token budgets, keyless auth, fallbacks, access control, masking of client names, guardrails and LLM-as-a-judge evaluation.",
+      "Co-developed shared streaming and observability packages with IT, now used by other internal AI projects.",
+    ],
+  },
+  {
+    title: "Management Associate, Technology",
+    org: "CTBC Bank",
+    place: "Taipei, Taiwan",
+    period: "Jul 2023 – May 2025",
+    href: "https://www.ctbcbank.com/",
+    points: [
+      "Rotated through information security, IT planning, digital finance innovation, data science and business analysis.",
+      "Rolled GitHub Copilot out across the bank: cleared security and compliance review, ran a seed-user programme and tracked adoption.",
+      "Helped set up the bank's cloud landing zone and contributed to its generative AI policy.",
+      "Researched LLM security risks and agent frameworks, which led into building the assistant above.",
+    ],
+  },
   {
     title: "Research Assistant",
     org: "National Taipei University · Prof. Shou-Yung Yin",
@@ -67,6 +94,17 @@ export type Project = { title: string; kind: string; points: string[]; tags: str
 
 export const projects: Project[] = [
   {
+    title: "LLM assistant for relationship managers",
+    kind: "CTBC Bank · LLM agents",
+    points: [
+      "A chat assistant inside the system the bank's relationship managers already use: it answers from internal knowledge, pulls up a client, and finds clients that match a description.",
+      "I built the main flow and the architecture; teammates built most of the tools on top.",
+      "The internal work is private, so there's no code to link. Happy to talk it through.",
+    ],
+    tags: ["Python", "OpenAI Agents SDK", "FastAPI", "Guardrails", "Evaluation"],
+    links: [],
+  },
+  {
     title: "Fake News Detection",
     kind: "Independent study · NLP",
     points: [
@@ -90,27 +128,6 @@ export const projects: Project[] = [
     links: [{ label: "GitHub", href: "https://github.com/hamchick/Iteractive-visual-dashboard" }],
   },
   {
-    title: "Pokémon Review API",
-    kind: ".NET Core Web API",
-    points: ["Six related entities with foreign keys and full CRUD.", "Layered into interfaces, repositories and controllers."],
-    tags: ["C#", ".NET", "REST", "SQL"],
-    links: [{ label: "GitHub", href: "https://github.com/hamchick/PokemonReviewAPI" }],
-  },
-  {
-    title: "Employee Management System",
-    kind: ".NET Core MVC",
-    points: ["CRUD over Microsoft SQL Server.", "Razor (cshtml) views on the MVC pattern."],
-    tags: ["C#", "ASP.NET MVC", "SQL Server"],
-    links: [{ label: "GitHub", href: "https://github.com/hamchick/.NET_MVC_CRUD_learn" }],
-  },
-  {
-    title: "Todo List App",
-    kind: "Django",
-    points: ["Class-based views on Django's MVT pattern, from Harvard CS50W.", "User sign-up, authentication and database models."],
-    tags: ["Python", "Django"],
-    links: [{ label: "GitHub", href: "https://github.com/hamchick/Django-todo_list" }],
-  },
-  {
     title: "This website",
     kind: "Next.js · Canvas",
     points: [
@@ -123,16 +140,16 @@ export const projects: Project[] = [
 ];
 
 export const skills = [
-  { group: "Languages", items: ["Python", "R", "C#", "TypeScript / JavaScript", "SQL"] },
-  { group: "Data & ML", items: ["Time-series forecasting", "Neural networks", "NLP", "Econometrics", "Data visualisation"] },
-  { group: "Web", items: ["Django", "ASP.NET Core", "React / Next.js", "HTML & CSS"] },
+  { group: "LLM & ML", items: ["LLM agents", "Guardrails & evaluation", "NLP", "Time-series forecasting", "Econometrics"] },
+  { group: "Engineering", items: ["FastAPI", "OpenAI Agents SDK", "Azure OpenAI", "Redis & SQL Server", "OpenTelemetry"] },
+  { group: "Languages", items: ["Python", "SQL", "TypeScript / React", "C#", "R"] },
 ];
 
-export const certificates: { name: string; href?: string }[] = [
-  { name: "TOEIC 950", href: "/files/TOEIC.jpg" },
-  { name: "Senior Securities Specialist" },
-  { name: "Trust Operations Personnel" },
-  { name: "Financial Derivatives Sales Personnel" },
-  { name: "Financial Planning Personnel" },
-  { name: "Financial Markets and Professional Ethics" },
+export const certificates: { name: string; date: string; href?: string }[] = [
+  { name: "Financial Planning Personnel", date: "Nov 2022" },
+  { name: "Trust Business Professional", date: "Nov 2022" },
+  { name: "Financial Derivatives Sales Personnel", date: "Oct 2022" },
+  { name: "TOEIC 950", date: "Sep 2022", href: "/files/TOEIC.jpg" },
+  { name: "Senior Securities Specialist", date: "Jan 2022" },
+  { name: "Financial Markets and Professional Ethics", date: "Jan 2022" },
 ];

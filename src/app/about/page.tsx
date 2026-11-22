@@ -27,14 +27,17 @@ export default function AboutPage() {
                     />
                     <div className="space-y-3 leading-relaxed">
                         <p>
-                            I studied computer science at NTUST, then economics at National Taipei University. In between I
-                            found that financial data is some of the most interesting data there is, and I wanted to
-                            understand what it actually means.
+                            I studied computer science, then did a master&apos;s in economics, then passed five financial
+                            licensing exams, then taught myself Django and ASP.NET Core in the weeks after military
+                            service. Now I build LLM assistants at CTBC Bank. On the side there&apos;s Japanese (JLPT N2
+                            and N3, both this December) and about two hundred LeetCode problems, which I stopped at once
+                            AI made the count feel beside the point.
                         </p>
                         <p>
-                            My master&apos;s thesis brought both sides together: forecasting Bitcoin with an Echo State
-                            Network. Since then I have been building on the web side, from Django to ASP.NET Core and now
-                            React.
+                            I call it a progress addiction: give me anything with a visible next step and I&apos;ll keep
+                            taking it. The catch is that progress isn&apos;t the same as getting better. A finished
+                            chapter or a green checkmark feels like improvement whether or not it was, so I try to measure
+                            by what I can build, not by what I&apos;ve ticked off.
                         </p>
                         <p className="text-muted">Off the keyboard you&apos;ll find me on a badminton court.</p>
                     </div>
@@ -80,13 +83,16 @@ export default function AboutPage() {
                                         href={c.href}
                                         target="_blank"
                                         rel="noreferrer"
-                                        className="flex items-center justify-between px-6 py-3.5 text-sm transition hover:text-accent"
+                                        className="flex items-center justify-between gap-4 px-6 py-3.5 text-sm transition hover:text-accent"
                                     >
                                         {c.name}
-                                        <span className="font-mono text-xs text-muted">view ↗</span>
+                                        <span className="shrink-0 font-mono text-xs text-muted">{c.date} · view ↗</span>
                                     </a>
                                 ) : (
-                                    <div className="px-6 py-3.5 text-sm">{c.name}</div>
+                                    <div className="flex items-center justify-between gap-4 px-6 py-3.5 text-sm">
+                                        {c.name}
+                                        <span className="shrink-0 font-mono text-xs text-muted">{c.date}</span>
+                                    </div>
                                 )}
                             </li>
                         ))}

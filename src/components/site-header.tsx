@@ -82,9 +82,11 @@ export function SiteHeader() {
                             </a>
                         )}
                         {/* The footer has the CV too, so on a phone it gives its room to the other links. */}
-                        <a href={profile.cv} className={`${link} hidden sm:inline`}>
-                            <Bracketed>cv ↓</Bracketed>
-                        </a>
+                        {profile.cv && (
+                            <a href={profile.cv} className={`${link} hidden sm:inline`}>
+                                <Bracketed>cv ↓</Bracketed>
+                            </a>
+                        )}
                     </nav>
                     <div className={backing}>
                         <ThemeToggle />

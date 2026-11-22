@@ -23,7 +23,7 @@ export function SiteFooter() {
                     <span className="mr-3 text-sm font-normal text-accent">~</span>get in touch
                 </h2>
                 <div className="font-mono">
-                    <p className="text-sm text-muted">Open to new opportunities. The quickest way to reach me is email.</p>
+                    <p className="text-sm text-muted">Happy to talk about LLMs, finance or anything in between. Email is quickest.</p>
                     <a href={`mailto:${profile.email}`} className="mt-3 inline-block text-accent hover:underline">
                         {profile.email}
                     </a>
@@ -33,9 +33,11 @@ export function SiteFooter() {
                                 <Bracketed>{l.label.toLowerCase()} ↗</Bracketed>
                             </a>
                         ))}
-                        <a href={profile.cv} className="transition hover:text-accent">
-                            <Bracketed>cv ↓</Bracketed>
-                        </a>
+                        {profile.cv && (
+                            <a href={profile.cv} className="transition hover:text-accent">
+                                <Bracketed>cv ↓</Bracketed>
+                            </a>
+                        )}
                     </div>
                 </div>
             </div>

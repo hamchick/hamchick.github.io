@@ -34,19 +34,21 @@ export default function WorkPage() {
                                         <Tag key={t}>{t}</Tag>
                                     ))}
                                 </div>
-                                <div className="mt-4 flex gap-4 text-sm font-medium">
-                                    {p.links.map((l) => (
-                                        <a
-                                            key={l.href}
-                                            href={l.href}
-                                            target="_blank"
-                                            rel="noreferrer"
-                                            className="text-accent hover:underline"
-                                        >
-                                            {l.label} ↗
-                                        </a>
-                                    ))}
-                                </div>
+                                {p.links.length > 0 && (
+                                    <div className="mt-4 flex gap-4 text-sm font-medium">
+                                        {p.links.map((l) => (
+                                            <a
+                                                key={l.href}
+                                                href={l.href}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="text-accent hover:underline"
+                                            >
+                                                {l.label} ↗
+                                            </a>
+                                        ))}
+                                    </div>
+                                )}
                             </article>
                         </Reveal>
                     ))}

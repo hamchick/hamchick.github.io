@@ -68,9 +68,11 @@ export function HomeCard() {
                         >
                             <span className="text-muted">[</span> contact <span className="text-muted">]</span>
                         </button>
-                        <a href={profile.cv} className={bracket}>
-                            <span className="text-muted">[</span> cv ↓ <span className="text-muted">]</span>
-                        </a>
+                        {profile.cv && (
+                            <a href={profile.cv} className={bracket}>
+                                <span className="text-muted">[</span> cv ↓ <span className="text-muted">]</span>
+                            </a>
+                        )}
                     </nav>
                     <AnimatePresence initial={false}>
                         {contact && (
