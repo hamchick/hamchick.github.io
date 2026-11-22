@@ -75,6 +75,8 @@ export interface Palette {
     };
     /** The mother duck's white plumage, from shadow to lit. Her bill and quack are the ducklings'. */
     mother: { shade: Rgb; base: Rgb };
+    /** The reeds at either end of the ducklings' strip. */
+    reed: Rgb;
 }
 
 export const DARK: Palette = {
@@ -112,6 +114,7 @@ export const DARK: Palette = {
         alpha: 0.96,
     },
     mother: { shade: [150, 152, 166], base: [238, 234, 226] },
+    reed: [128, 150, 104],
 };
 
 // Paper page: tiles are pale washes of the skin colour with dark glyphs etched on top.
@@ -150,6 +153,7 @@ export const LIGHT: Palette = {
     },
     // White on paper needs a grey edge to hold its shape against the pale page.
     mother: { shade: [128, 126, 122], base: [214, 210, 202] },
+    reed: [84, 108, 60],
 };
 
 // Dense glyphs etched into each skin tile, sparse where it catches the light.
@@ -360,6 +364,7 @@ export class KoiRenderer {
         this.drawShadows();
         this.drawWake();
         this.drawRipples(world);
+        this.drawWaterline(world);
         this.drawDuckWakes(world);
         this.drawPellets(world);
         this.drawCells();
@@ -874,6 +879,9 @@ export class KoiRenderer {
      * path it actually swam, so the V bends behind a turning duck. Each point spreads out from the path as it ages.
      */
     private drawDuckWakes(world: World) {
+        // A V is only seen from above. In a strip the water is seen from the side, and the ripples either side of the
+        // body are all the wake that shows.
+        if (world.duckBand !== null) return;
         const { cw, ch, cellGlyph, cellDim, palette } = this;
         const spread = Math.tan((19.5 * Math.PI) / 180);
         const step = Math.min(cw, ch) * 0.6;
@@ -1019,6 +1027,10 @@ export class KoiRenderer {
         const edge = this.koiCeiling > 0 ? Math.ceil(this.koiCeiling / ch) : -1;
         for (const rp of world.ripples) {
             const above = edge >= 0 && rp.y < edge * ch;
+            if (above) {
+                this.drawSplash(world, rp);
+                continue;
+            }
             const age = world.time - rp.born;
             const life = rippleLife(rp);
             const fade = Math.pow(1 - age / life, 1.5) * rp.strength;
@@ -1048,6 +1060,84 @@ export class KoiRenderer {
         }
     }
 
+    /**
+     * A ripple in the ducklings' strip on the home page, where the water is seen from the side: a few drops thrown up
+     * at first, then two wavelets running out along the waterline either way, fading as they go.
+     */
+    private drawSplash(world: World, rp: World["ripples"][number]) {
+        const { cw, ch, cols, cellGlyph, palette } = this;
+        const age = world.time - rp.born;
+        const life = rippleLife(rp);
+        const fade = Math.pow(1 - age / life, 1.5) * rp.strength;
+        const row = Math.floor(rp.y / ch);
+        if (age < 0.35) {
+            // Drops thrown up off the water.
+            for (const [dc, dr, glyph] of [
+                [0, -1, "'"],
+                [-1, -1, "."],
+                [1, -1, "."],
+            ] as const) {
+                const c = Math.floor(rp.x / cw) + dc;
+                const r = row + dr - (age > 0.18 ? 1 : 0);
+                if (c < 0 || c >= cols || r < 0) continue;
+                const i = r * cols + c;
+                if (!cellGlyph[i]) this.glyphAt(i, glyph, palette.water, Math.min(1, rp.strength * 2) * (1 - age / 0.35));
+            }
+        }
+        const run = age * RIPPLE_SPEED * (0.7 + 0.5 * rp.strength);
+        for (const side of [-1, 1]) {
+            for (let k = 0; k < 2; k++) {
+                const c = Math.floor((rp.x + side * Math.max(cw * 0.6, run - k * cw * 1.2)) / cw);
+                if (c < 0 || c >= cols || row < 0) continue;
+                const i = row * cols + c;
+                if (cellGlyph[i]) continue;
+                this.glyphAt(i, k === 0 ? "~" : "-", palette.water, fade * (k === 0 ? 0.7 : 0.4));
+            }
+        }
+    }
+
+    /**
+     * Along the ducklings' strip on the home page: the waterline, a row of faint ~ drifting slowly along it, and a
+     * clump of reeds at either end swaying in the breeze, so the strip reads as the pond's surface seen from the side.
+     */
+    private drawWaterline(world: World) {
+        const line = world.waterline;
+        if (line === null) return;
+        const { ch, cols, cellGlyph, palette } = this;
+        const t = world.time;
+        const row = Math.floor((line + ch * 0.4) / ch);
+        if (row < 0 || row >= this.rows) return;
+        for (let c = 0; c < cols; c++) {
+            const i = row * cols + c;
+            if (cellGlyph[i]) continue;
+            const v = Math.sin(c * 0.45 - t * 0.7) * 0.6 + Math.sin(c * 0.17 + t * 0.3) * 0.4;
+            if (v < 0.35) continue;
+            this.glyphAt(i, "~", palette.water, 0.08 + 0.22 * ((v - 0.35) / 0.65));
+        }
+        // Reeds: a few stalks at each end, rising from the waterline, their tips leaning one way and then the other.
+        const reed = palette.reed;
+        for (const [from, dir] of [
+            [1, 1],
+            [cols - 2, -1],
+        ] as const) {
+            for (let k = 0; k < 4; k++) {
+                const c = from + dir * k;
+                if (c < 0 || c >= cols) continue;
+                const height = [3, 4, 2, 3][k];
+                const sway = Math.sin(t * 0.9 + c * 1.3);
+                for (let h = 1; h <= height; h++) {
+                    const r = row - h;
+                    if (r < 0) continue;
+                    const i = r * cols + c;
+                    if (cellGlyph[i]) continue;
+                    const tip = h === height;
+                    const glyph = tip ? (sway > 0.3 ? "/" : sway < -0.3 ? "\\" : "|") : h === 1 && k % 2 === 1 ? "," : "|";
+                    this.glyphAt(i, glyph, reed, (tip ? 0.45 : 0.6) * palette.alpha);
+                }
+            }
+        }
+    }
+
     /** A bite flashes * over the koi's mouth, settling to + then a dot as the splash takes over. */
     private drawBites(world: World) {
         const { palette } = this;
@@ -1067,8 +1157,10 @@ export class KoiRenderer {
             const age = world.time - p.born;
             if (!p.landed) {
                 const fall = age / p.landAt;
-                // Drawn a little above where it will land, closing in as it drops.
-                const i = this.cellIndex(p.x, p.y - (1 - fall) * ch * 1.5);
+                // Drawn a little above where it will land, closing in as it drops; thrown into the ducklings' strip,
+                // it drops all the way from where it was thrown, speeding up as it falls.
+                const y = p.fromY === undefined ? p.y - (1 - fall) * ch * 1.5 : p.fromY + (p.y - p.fromY) * fall * fall;
+                const i = this.cellIndex(p.x, y);
                 if (i < 0 || cellGlyph[i]) continue;
                 this.glyphAt(i, fall < 0.5 ? "'" : ".", palette.pellet, palette.alpha * (0.5 + 0.4 * fall));
                 continue;

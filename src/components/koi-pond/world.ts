@@ -133,6 +133,8 @@ export interface Duck {
     peckAt: number;
     /** Pecks made so far at the current pellet, so each one can splash. */
     pecks: number;
+    /** When a koi last startled it, coming up under it from the pond below. */
+    startleAt: number;
     dipAt: number;
     nextDip: number;
     /** Where the duck has been lately, oldest first, for drawing the V of its wake. */
@@ -167,6 +169,11 @@ export interface Pellet {
     /** Slow drift once it's floating. */
     vx: number;
     vy: number;
+    /**
+     * Thrown into the ducklings' strip on the home page, where the water is seen from the side: the height it drops
+     * from onto the waterline at `y`. Absent for food thrown into the pond seen from above.
+     */
+    fromY?: number;
 }
 
 /** The moment a koi takes a pellet, drawn as a brief flash where it happened. */
@@ -242,6 +249,11 @@ const EATING_SOUNDS = ["quack!", "nom nom"];
 const IDLE_SOUNDS = ["quack", "peep"];
 /** A duckling keeps this far behind the duck ahead of it in line, in their two lengths added together. */
 const FAMILY_GAP = 0.6;
+/** How far above the foot of the strip the ducklings float, in pixels. */
+const STRIP_FLOAT = 14;
+/** A koi's head coming this close under the strip's edge, beneath a duck, startles it, at most this often. */
+const STARTLE_REACH = 40;
+const STARTLE_EVERY = 12;
 /** How fast a gliding duck loses speed, per second. */
 const DUCK_DRAG = 1.3;
 /** Average of a foot's push over a stroke, max(0, sin) averaged: scales the push so speed settles where intended. */
@@ -281,8 +293,16 @@ export class World {
     duckStrip: number | null = null;
 
     /** Depth of the strip the ducklings keep to right now, or null when they roam the whole pond. */
-    private get duckBand() {
+    get duckBand() {
         return this.band ?? this.duckStrip;
+    }
+
+    /**
+     * On the home page, where the ducklings' strip is the surface seen from the side, the height of its waterline,
+     * where the ducklings float and food thrown into the strip lands. null elsewhere.
+     */
+    get waterline() {
+        return this.band === null && this.duckStrip !== null ? this.duckStrip - STRIP_FLOAT : null;
     }
 
     /** Top of the water the koi swim in: below the ducklings' strip on the home page, the top of the screen otherwise. */
@@ -439,6 +459,7 @@ export class World {
                 dipAt: -Infinity,
                 peckAt: -Infinity,
                 pecks: DUCK_PECKS,
+                startleAt: -Infinity,
                 nextDip: rand(6, 16),
                 trail: [],
                 nextTrail: 0,
@@ -454,6 +475,11 @@ export class World {
     /** A loose handful thrown at (x, y): each pellet lands a beat apart with its own splash, then drifts and sinks. */
     feed(x: number, y: number) {
         this.lastFeed = this.time;
+        const line = this.waterline;
+        if (line !== null && this.duckStrip !== null && y < this.duckStrip) {
+            this.feedStrip(x, y, line);
+            return;
+        }
         this.ripples.push({ x, y, born: this.time, strength: 0.35 });
         for (const d of this.ducks) if (Math.random() < DUCK_APPETITE) d.keen = 1;
         // A full pond takes no more food, rather than dropping old pellets out from under koi already going for them.
@@ -470,6 +496,30 @@ export class World {
                 landed: false,
                 vx: Math.cos(a) * drift,
                 vy: Math.sin(a) * drift,
+            });
+        }
+    }
+
+    /**
+     * Food thrown into the ducklings' strip on the home page, where the water is seen from the side: a handful
+     * scattered along the waterline, each dropping straight down onto it from about where it was thrown. Only the
+     * ducklings go for it.
+     */
+    private feedStrip(x: number, y: number, line: number) {
+        for (const d of this.ducks) if (Math.random() < DUCK_APPETITE * 1.5) d.keen = 1;
+        const count = Math.min(4 + Math.floor(Math.random() * 3), MAX_PELLETS - this.pellets.length);
+        for (let k = 0; k < count; k++) {
+            const from = Math.min(line - 4, y - rand(0, 10));
+            this.pellets.push({
+                x: x + rand(-1, 1) * THROW_RADIUS * 1.3,
+                y: line,
+                fromY: from,
+                born: this.time,
+                // Further to fall, longer to land.
+                landAt: 0.18 + Math.sqrt(Math.max(0, line - from) / 400) + rand(0, 0.15),
+                landed: false,
+                vx: rand(-4, 4),
+                vy: 0,
             });
         }
     }
@@ -790,7 +840,7 @@ export class World {
             const dist = Math.hypot(ox, oy) || 1;
             // Room to paddle, but the pair never wanders far apart.
             // Family keep close, just not on top of each other; the line keeps them together.
-            const room = (L + other.length) * 0.45;
+            const room = (L + other.length) * 0.55;
             if (dist < room) {
                 dx += (ox / dist) * (1 - dist / room) * 2.5;
                 dy += (oy / dist) * (1 - dist / room) * 2.5;
@@ -815,13 +865,15 @@ export class World {
         const band = this.duckBand;
         if (band !== null) {
             // In the strip along the top, a duckling rides near its lower edge, clear of the header above.
-            dy += clamp((band - 14 - d.y) / 12, -3, 3);
+            dy += clamp((band - STRIP_FLOAT - d.y) / 12, -3, 3);
         } else {
             dy += edge(d.y - L) - edge(H - d.y);
         }
 
         const maxTurn = (food ? 1.8 : 0.4) * dt;
-        const turned = clamp(angleDiff(d.heading, Math.atan2(dy * DUCK_STEER_VERTICAL, dx)), -maxTurn, maxTurn);
+        // In a strip, the water is seen from the side: a duck can only paddle left or right along it.
+        const steer = band !== null ? Math.atan2(0, dx || d.facing) : Math.atan2(dy * DUCK_STEER_VERTICAL, dx);
+        const turned = clamp(angleDiff(d.heading, steer), -maxTurn, maxTurn);
         d.heading += turned;
         d.turn += (turned / dt - d.turn) * Math.min(1, dt * 4);
         // Flip only once clearly headed the other way, so a duck paddling up or down the screen doesn't flicker.
@@ -867,7 +919,12 @@ export class World {
         const thrust = Math.max(0, Math.sin(d.paddle * 2)) * d.beat;
         d.speed = Math.max(0, d.speed + (thrust * (target / STROKE_MEAN) - d.speed) * DUCK_DRAG * dt);
         d.x += Math.cos(d.heading) * d.speed * dt;
-        d.y += Math.sin(d.heading) * d.speed * DUCK_VERTICAL_SPEED * dt;
+        if (band !== null) {
+            // Afloat on the waterline, every duck at the same height, the way they'd look from the bank.
+            d.y += (band - STRIP_FLOAT - d.y) * Math.min(1, dt * 4);
+        } else {
+            d.y += Math.sin(d.heading) * d.speed * DUCK_VERTICAL_SPEED * dt;
+        }
 
         // Only floating pellets: once they sink they're the koi's.
         const reach = L * 0.12 + 6;
@@ -900,6 +957,24 @@ export class World {
         }
         const dipAge = time - d.dipAt;
         d.dip = dipAge < DUCK_DIP_TIME ? Math.sin((Math.PI * dipAge) / DUCK_DIP_TIME) : 0;
+
+        // On the home page, a koi coming up under the strip's edge right beneath a duck startles it: a peep or a quack,
+        // and the mother turns and leads her line away from it.
+        const ceiling = this.koiCeiling;
+        if (ceiling > 0 && time - d.startleAt > STARTLE_EVERY) {
+            for (const k of this.koi) {
+                const hx = k.nodes[0];
+                if (k.nodes[1] - ceiling > STARTLE_REACH || Math.abs(hx - d.x) > L * 0.8) continue;
+                d.startleAt = time;
+                this.quack(d, d.mother ? "quack!" : "peep!");
+                this.ripples.push({ x: d.x, y: d.y, born: time, strength: 0.3 });
+                if (d.mother) {
+                    d.heading = hx > d.x ? Math.PI : 0;
+                    d.paddleUntil = time + rand(1.5, 2.5);
+                }
+                break;
+            }
+        }
 
         // Left to itself, a duck quacks once in a long while.
         if (time > d.nextQuack) this.quack(d, d.mother ? "quack" : pick(IDLE_SOUNDS));
