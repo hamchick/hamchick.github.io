@@ -141,10 +141,11 @@ export const projects: Project[] = [
   },
 ];
 
+// `core` is what I use day to day; the About page lights those up and keeps the rest quiet.
 export const skills = [
-  { group: "LLM & ML", items: ["LLM agents", "Guardrails & evaluation", "NLP", "Time-series forecasting", "Econometrics"] },
-  { group: "Engineering", items: ["FastAPI", "OpenAI Agents SDK", "Azure OpenAI", "Redis & SQL Server", "OpenTelemetry"] },
-  { group: "Languages", items: ["Python", "SQL", "TypeScript / React", "C#", "R"] },
+  { group: "LLM & ML", core: ["LLM agents", "Guardrails & evaluation"], items: ["NLP", "Time-series forecasting", "Econometrics"] },
+  { group: "Engineering", core: ["AI-assisted development", "OpenAI Agents SDK", "FastAPI"], items: ["Azure OpenAI", "LangGraph / Langflow", "Redis & SQL Server", "OpenTelemetry"] },
+  { group: "Languages", core: ["Python"], items: ["SQL", "TypeScript / React", "R"] },
 ];
 
 export const certificates: { name: string; date: string; href?: string }[] = [
