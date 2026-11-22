@@ -333,8 +333,8 @@ export class World {
     }
 
     /**
-     * Size of one duckling sprite pixel, in CSS pixels. Set before the first resize; the engine picks a size that is a
-     * whole number of device pixels, so the pixel art stays crisp.
+     * Size of one duckling sprite pixel, in CSS pixels. Set before the first resize. It needn't be a whole number of
+     * device pixels: the renderer lands each pixel's edges on whole ones.
      */
     duckPixel = 3;
     /** The same for the mother duck, a size up. */

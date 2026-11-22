@@ -9,6 +9,9 @@ export type PondStats = { koi: number; pellets: number };
 
 /** Fired on window each time someone throws food in, so the page around the pond can respond. */
 export const POND_FEED_EVENT = "pond:feed";
+/** The ducks' size relative to the rest of the site. */
+const DUCK_SCALE = 0.85;
+
 /** How long the pond takes to narrow to its strip on a content page, matched by the clip animation in Pond. */
 export const BAND_TRANSITION_MS = 700;
 
@@ -141,12 +144,14 @@ class PondEngine {
         if (rect.width < 1 || rect.height < 1) return;
         const dpr = Math.min(window.devicePixelRatio || 1, 2);
         this.renderer.resize(rect.width, rect.height, dpr);
-        // Ducklings follow the site's four-fifths sizing on wider screens, rounded to whole device pixels so the
-        // pixel art stays crisp. Only the first resize seeds them, so this only needs to be right then.
-        const duckPixel = rect.width >= SCALED_FROM_PX ? 3 * SITE_SCALE : 3;
-        this.world.duckPixel = Math.max(1, Math.round(duckPixel * dpr)) / dpr;
+        // Ducklings follow the site's four-fifths sizing on wider screens. Their pixels needn't be whole device
+        // pixels: the renderer lands every edge on one, so the art stays crisp at any size. Only the first resize
+        // seeds them, so this only needs to be right then.
+        // A little smaller than the site's other sizes, so the family stays in the background of the strip.
+        const duckPixel = (rect.width >= SCALED_FROM_PX ? 3 * SITE_SCALE : 3) * DUCK_SCALE;
+        this.world.duckPixel = duckPixel;
         // The mother duck a size up from her ducklings.
-        this.world.motherPixel = Math.max(1, Math.round(duckPixel * 1.4 * dpr)) / dpr;
+        this.world.motherPixel = duckPixel * 1.4;
         this.world.resize(rect.width, rect.height);
         this.measureContent();
         this.report();

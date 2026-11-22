@@ -75,8 +75,6 @@ export interface Palette {
     };
     /** The mother duck's white plumage, from shadow to lit. Her bill and quack are the ducklings'. */
     mother: { shade: Rgb; base: Rgb };
-    /** The reeds at either end of the ducklings' strip. */
-    reed: Rgb;
 }
 
 export const DARK: Palette = {
@@ -114,7 +112,6 @@ export const DARK: Palette = {
         alpha: 0.96,
     },
     mother: { shade: [150, 152, 166], base: [238, 234, 226] },
-    reed: [128, 150, 104],
 };
 
 // Paper page: tiles are pale washes of the skin colour with dark glyphs etched on top.
@@ -153,7 +150,6 @@ export const LIGHT: Palette = {
     },
     // White on paper needs a grey edge to hold its shape against the pale page.
     mother: { shade: [128, 126, 122], base: [214, 210, 202] },
-    reed: [84, 108, 60],
 };
 
 // Dense glyphs etched into each skin tile, sparse where it catches the light.
@@ -705,8 +701,9 @@ export class KoiRenderer {
         const W = DUCK_SPRITE_WIDTH;
         // Seen through a little water: the bill's orange, only slightly muted.
         const feet = mix(palette.duck.bill, palette.bg, 0.2);
-        // Positions land on whole device pixels. A sprite pixel is a whole number of device pixels too (see
-        // World.duckPixel), so every edge of the pixel art falls on the screen's own pixel grid and stays crisp.
+        // Every edge of the pixel art lands on a whole device pixel, so it stays crisp. A sprite pixel needn't be a
+        // whole number of device pixels (see World.duckPixel): where it isn't, some pixels come out a device pixel
+        // wider or taller than others, too small a difference to see, rather than blurred.
         const dpr = this.dpr;
         const snap = (v: number) => Math.round(v * dpr) / dpr;
 
@@ -755,7 +752,7 @@ export class KoiRenderer {
             // Positive while the bill swings down the screen.
             const lean = still ? 0 : clamp(d.turn * dir * 4, -2, 2);
             // Swallowing, the head tips up a pixel.
-            const headDrop = Math.round(lean) - (gulping ? p : 0);
+            const headDrop = Math.round(lean) - (gulping ? Math.round(p) : 0);
             const tailDrop = Math.round(-lean * 0.6) + (still ? 0 : Math.round(Math.sin(d.paddle + 1.2) * effort));
 
             // Where sprite pixel (c, r) lands on screen: mirrored to face left, narrowed while turning, and nudged
@@ -767,9 +764,11 @@ export class KoiRenderer {
                 const dx = head ? reach : 0;
                 const x0 = snap(left) + dx;
                 const x1 = snap(left + pw) + dx;
-                const y0 = top + r * p + (head ? headDrop : tail ? tailDrop : 0);
+                const nudge = head ? headDrop : tail ? tailDrop : 0;
+                const y0 = snap(top + r * p) + nudge;
+                const y1 = snap(top + (r + 1) * p) + nudge;
                 // When the head lifts, its bottom row stretches down to the neck, so they never come apart.
-                const h = head && r === DUCK_HEAD_ROWS - 1 ? p + Math.max(0, -headDrop) : p;
+                const h = Math.max(1 / dpr, y1 - y0) + (head && r === DUCK_HEAD_ROWS - 1 ? Math.max(0, -headDrop) : 0);
                 return { x: x0, y: y0, w: Math.max(1, x1 - x0), h };
             };
 
@@ -1097,8 +1096,8 @@ export class KoiRenderer {
     }
 
     /**
-     * Along the ducklings' strip on the home page: the waterline, a row of faint ~ drifting slowly along it, and a
-     * clump of reeds at either end swaying in the breeze, so the strip reads as the pond's surface seen from the side.
+     * Along the ducklings' strip on the home page: the waterline, a row of faint ~ drifting slowly along it, so the
+     * strip reads as the pond's surface seen from the side.
      */
     private drawWaterline(world: World) {
         const line = world.waterline;
@@ -1113,28 +1112,6 @@ export class KoiRenderer {
             const v = Math.sin(c * 0.45 - t * 0.7) * 0.6 + Math.sin(c * 0.17 + t * 0.3) * 0.4;
             if (v < 0.35) continue;
             this.glyphAt(i, "~", palette.water, 0.08 + 0.22 * ((v - 0.35) / 0.65));
-        }
-        // Reeds: a few stalks at each end, rising from the waterline, their tips leaning one way and then the other.
-        const reed = palette.reed;
-        for (const [from, dir] of [
-            [1, 1],
-            [cols - 2, -1],
-        ] as const) {
-            for (let k = 0; k < 4; k++) {
-                const c = from + dir * k;
-                if (c < 0 || c >= cols) continue;
-                const height = [3, 4, 2, 3][k];
-                const sway = Math.sin(t * 0.9 + c * 1.3);
-                for (let h = 1; h <= height; h++) {
-                    const r = row - h;
-                    if (r < 0) continue;
-                    const i = r * cols + c;
-                    if (cellGlyph[i]) continue;
-                    const tip = h === height;
-                    const glyph = tip ? (sway > 0.3 ? "/" : sway < -0.3 ? "\\" : "|") : h === 1 && k % 2 === 1 ? "," : "|";
-                    this.glyphAt(i, glyph, reed, (tip ? 0.45 : 0.6) * palette.alpha);
-                }
-            }
         }
     }
 
