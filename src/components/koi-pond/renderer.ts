@@ -808,7 +808,7 @@ export class KoiRenderer {
             if (!dabbling) {
                 ctx.fillStyle = this.style(packRgb(feet));
                 const reachOfStroke = clamp(d.speed / 30, 0.5, 1);
-                const thick = Math.max(1, Math.round(p * 0.7));
+                const thick = Math.max(1, Math.round(p));
                 for (const [base, phase] of [
                     [5, 1],
                     [7, -1],
@@ -821,12 +821,12 @@ export class KoiRenderer {
                     const w = ankle.w;
                     const fx = ankle.x + Math.round(kick * 1.5 * p) * dir;
                     const fy = ankle.y;
-                    ctx.globalAlpha = (open ? 0.55 : 0.32) * dim;
-                    // One tile at the ankle, then the web: spread three wide behind the ankle on the push, a single tile
+                    ctx.globalAlpha = (open ? 0.72 : 0.48) * dim;
+                    // One tile at the ankle, then the web: spread three wide behind the ankle on the push, two tiles
                     // trailing when folded.
                     ctx.fillRect(fx, fy, w, thick);
                     if (open) ctx.fillRect(dir > 0 ? fx - 2 * w : fx, fy + thick, 3 * w, thick);
-                    else ctx.fillRect(fx - dir * w, fy + thick, w, thick);
+                    else ctx.fillRect(dir > 0 ? fx - w : fx, fy + thick, 2 * w, thick);
                 }
             }
         }
