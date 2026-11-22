@@ -19,7 +19,7 @@ const EASE = [0.22, 1, 0.36, 1] as const;
 /**
  * The header on the content pages, written like the home page's links: monospace words in square brackets. It sits
  * over the strip of pond along the top, so empty water around the links can still be clicked to feed the koi. On the
- * home page it shows only on a wider screen: a phone gives the whole screen to the pond, and the card's links do.
+ * home page a phone shows only the logo and the theme toggle: the card's links stand in for the rest.
  */
 export function SiteHeader() {
     const path = usePath();
@@ -47,13 +47,13 @@ export function SiteHeader() {
     useEffect(() => setContact(false), [path]);
 
     return (
-        <header className={`fixed inset-x-0 top-0 z-30 ${home ? "hidden sm:block" : ""}`}>
+        <header className="fixed inset-x-0 top-0 z-30">
             <div className="mx-auto flex h-(--strip-slim) max-w-5xl items-center justify-between gap-2 px-4 font-mono sm:px-6">
                 <Link href="/" className={`${backing} ${link} flex items-center px-2 py-1.5 text-xs sm:px-3 font-semibold sm:text-sm`} title="Back to the pond">
                     <Logo />
                 </Link>
                 <div ref={contactRef} className="relative flex items-center gap-1.5 sm:gap-2">
-                    <nav className={`${backing} flex items-center gap-1.5 px-2 py-1.5 text-xs sm:gap-4 sm:px-3 sm:text-sm`}>
+                    <nav className={`${backing} ${home ? "hidden sm:flex" : "flex"} items-center gap-1.5 px-2 py-1.5 text-xs sm:gap-4 sm:px-3 sm:text-sm`}>
                         {navLinks.map((n) => {
                             const active = path === n.href.replace(/\/$/, "");
                             return (
