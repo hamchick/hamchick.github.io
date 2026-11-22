@@ -127,7 +127,7 @@ export function FeedHint() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1, transition: { delay: 1.2, duration: 0.6 } }}
                     exit={{ opacity: 0, transition: { duration: 0.4 } }}
-                    className="pointer-events-none fixed inset-x-4 top-[calc(var(--strip-depth)+0.75rem)] z-20 mx-auto w-fit rounded-2xl border border-line bg-card/80 px-3 py-1.5 font-mono text-xs text-muted shadow-sm backdrop-blur sm:left-auto sm:right-6 sm:top-auto sm:bottom-6 sm:mx-0 sm:rounded-full"
+                    className="pointer-events-none fixed inset-x-4 top-[calc(var(--strip-home)+0.75rem)] z-20 mx-auto w-fit rounded-2xl border border-line bg-card/80 px-3 py-1.5 font-mono text-xs text-muted shadow-sm backdrop-blur sm:left-auto sm:right-6 sm:top-auto sm:bottom-6 sm:mx-0 sm:rounded-full"
                 >
                     <span className="sm:hidden">tap the water to feed koi or ducklings</span>
                     <span className="hidden sm:inline">click the water to feed the koi, or up top, the ducklings</span>

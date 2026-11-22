@@ -10,7 +10,7 @@ export type PondStats = { koi: number; pellets: number };
 /** Fired on window each time someone throws food in, so the page around the pond can respond. */
 export const POND_FEED_EVENT = "pond:feed";
 /** The ducks' size relative to the rest of the site. */
-const DUCK_SCALE = 0.85;
+const DUCK_SCALE = 0.75;
 
 /** How long the pond takes to narrow to its strip on a content page, matched by the clip animation in Pond. */
 export const BAND_TRANSITION_MS = 700;

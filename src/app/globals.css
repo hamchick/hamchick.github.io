@@ -60,6 +60,7 @@ html {
   /* The strip of pond along the top of the content pages: header row plus water, and the header row alone. */
   --strip-depth: 120px;
   --strip-slim: 56px;
+  --strip-home: 100px;
 }
 
 /*
@@ -72,6 +73,7 @@ html {
     font-size: 80%;
     --strip-depth: 96px;
     --strip-slim: 45px;
+    --strip-home: 80px;
   }
 }
 

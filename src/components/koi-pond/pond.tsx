@@ -33,7 +33,7 @@ export function Pond() {
                     className="h-full w-full transition-opacity"
                     style={{ opacity: !home && scrolled ? 0.35 : 1, transitionDuration: `${BAND_TRANSITION_MS}ms` }}
                 >
-                    <KoiPond band={home ? null : strip.depth} duckStrip={strip.depth} className="h-full w-full" />
+                    <KoiPond band={home ? null : strip.depth} duckStrip={home ? strip.home : strip.depth} className="h-full w-full" />
                 </div>
             </div>
             {/*
@@ -44,7 +44,7 @@ export function Pond() {
                 aria-hidden="true"
                 className="pointer-events-none fixed inset-x-0 top-0 z-[6] border-b border-line/70 transition-[height,opacity] ease-[cubic-bezier(0.65,0,0.35,1)]"
                 style={{
-                    height: shown ?? strip.depth,
+                    height: shown ?? strip.home,
                     opacity: home ? 0.6 : 1,
                     transitionDuration: `${BAND_TRANSITION_MS}ms`,
                 }}
