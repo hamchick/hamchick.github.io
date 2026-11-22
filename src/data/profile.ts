@@ -10,7 +10,7 @@ export const profile = {
   // No CV link until there's a current one.
   cv: null as string | null,
   focus: ["LLM agents", "machine learning", "finance", "web development"],
-  intro: "Building an assistant that helps bankers find answers.\nThen I go looking for harder questions.",
+  intro: "My assistant helps bankers find answers.\nAnd I look for harder questions.",
 };
 
 export type TimelineItem = { title: string; org: string; place: string; period: string; href?: string; points?: string[] };
