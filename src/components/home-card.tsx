@@ -50,10 +50,15 @@ export function HomeCard() {
                 <MosaicName text={profile.name} className="w-full" />
                 {/* The words below steer the koi aside and dim them, so they stay easy to read. */}
                 <div data-pond-avoid className="font-mono">
-                    <p className="mt-5 text-base leading-snug text-muted sm:mt-6 sm:text-lg">
+                    {/* The header logo says hamchick, so tie it to the name: tucked right under it, as its subtitle. */}
+                    <p className="mt-1 text-sm text-muted sm:mt-2 sm:text-base">
+                        aka <span className="text-ink">{profile.handle}</span>
+                        <span className="text-accent">.</span>
+                    </p>
+                    <p className="mt-6 text-base leading-snug text-muted sm:mt-8 sm:text-lg">
                         CS × Economics, into <RotatingWord words={profile.focus} />
                     </p>
-                    <p className="mt-3 max-w-md text-sm leading-relaxed">{profile.intro}</p>
+                    <p className="mt-3 max-w-lg whitespace-pre-line text-sm leading-relaxed sm:text-base">{profile.intro}</p>
                     <nav className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-sm sm:mt-7">
                         {links.map((l) => (
                             <Link key={l.href} href={l.href} className={bracket}>

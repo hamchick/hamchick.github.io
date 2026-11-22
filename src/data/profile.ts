@@ -2,13 +2,15 @@
 
 export const profile = {
   name: "Hsin-En Huang",
+  // The name I go by online, shown in the header logo and under the name on the home page.
+  handle: "hamchick",
   email: "chickenhamgod@gmail.com",
   github: "https://github.com/hamchick",
   instagram: "https://www.instagram.com/ham_chick_/",
   // No CV link until there's a current one.
   cv: null as string | null,
-  focus: ["LLM agents", "machine learning", "finance", "web development", "Japanese"],
-  intro: "Building LLM assistants at a bank. Usually halfway through learning something else.",
+  focus: ["LLM agents", "machine learning", "finance", "web development"],
+  intro: "Building an assistant that helps bankers find answers.\nThen I go looking for harder questions.",
 };
 
 export type TimelineItem = { title: string; org: string; place: string; period: string; href?: string; points?: string[] };
