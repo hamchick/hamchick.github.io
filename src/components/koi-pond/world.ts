@@ -267,6 +267,37 @@ export class World {
      * ducklings keep to it there. null for the whole pond, on the home page.
      */
     band: number | null = null;
+    /**
+     * On the home page the ducklings keep to a strip along the top as well, this many pixels deep, and the koi to the
+     * water below it: the strip is the surface seen from the side, the pond below seen from above. null to let the
+     * ducklings roam the whole pond.
+     */
+    duckStrip: number | null = null;
+
+    /** Depth of the strip the ducklings keep to right now, or null when they roam the whole pond. */
+    private get duckBand() {
+        return this.band ?? this.duckStrip;
+    }
+
+    /** Top of the water the koi swim in: below the ducklings' strip on the home page, the top of the screen otherwise. */
+    get koiCeiling() {
+        return this.band === null ? (this.duckStrip ?? 0) : 0;
+    }
+
+    /** Keep the ducklings to a strip along the top on the home page too. Ones out in the pond start off in it. */
+    setDuckStrip(depth: number | null) {
+        this.duckStrip = depth;
+        if (depth === null) return;
+        for (const d of this.ducks) {
+            if (d.y <= depth) continue;
+            d.x = rand(this.width * 0.15, this.width * 0.85);
+            d.y = depth - rand(10, 18);
+            d.heading = Math.random() < 0.5 ? 0 : Math.PI;
+            d.facing = Math.cos(d.heading) >= 0 ? 1 : -1;
+            d.view = "side";
+            d.trail = [];
+        }
+    }
 
     /**
      * Size of one duckling sprite pixel, in CSS pixels. Set before the first resize; the engine picks a size that is a
@@ -283,6 +314,8 @@ export class World {
         // Bring everyone up to the strip from out of sight, so they arrive in it within moments rather than
         // minutes: ducklings paddle in from either side, koi rise from just beneath it.
         for (const d of this.ducks) {
+            // Already in the strip from the home page: they just paddle on.
+            if (d.y <= band) continue;
             const fromLeft = Math.random() < 0.5;
             d.x = fromLeft ? -d.length * 0.6 : W + d.length * 0.6;
             d.y = band - rand(10, 18);
@@ -398,6 +431,8 @@ export class World {
             });
         }
         this.placeDucks();
+        // Seeded after the strip was set: start the ducklings in it.
+        if (this.duckStrip !== null) this.setDuckStrip(this.duckStrip);
     }
 
     /** A loose handful thrown at (x, y): each pellet lands a beat apart with its own splash, then drifts and sinks. */
@@ -453,7 +488,7 @@ export class World {
      */
     placeDucks() {
         // In the strip along the top they're already where they belong.
-        if (this.band !== null) return;
+        if (this.duckBand !== null) return;
         const { width: W, height: H } = this;
         for (const d of this.ducks) {
             let best = this.duckRoom(d, d.x, d.y);
@@ -601,11 +636,13 @@ export class World {
         // Let the body slip off-screen now and then, but always turn back. On a content page the "bottom" is the
         // foot of the strip of water along the top.
         const floor = this.band ?? H;
-        const over = Math.max(-hx, hx - W, -hy, hy - floor);
+        // On the home page the top of their water is the foot of the ducklings' strip.
+        const ceiling = this.koiCeiling;
+        const over = Math.max(-hx, hx - W, ceiling - hy, hy - floor);
         if (over > -L * 0.25) {
             const w = clamp((over + L * 0.25) / (L * 0.5), 0, 1) * 3.5;
             const toX = W / 2 - hx;
-            const toY = floor / 2 - hy;
+            const toY = (ceiling + floor) / 2 - hy;
             const d = Math.hypot(toX, toY) || 1;
             dx += (toX / d) * w;
             dy += (toY / d) * w;
@@ -743,9 +780,10 @@ export class World {
         dx += edge(d.x) - edge(W - d.x);
         // The side-on sprite stands up off the waterline, so the top edge counts from its head, which keeps it
         // out from under the site header too.
-        if (this.band !== null) {
+        const band = this.duckBand;
+        if (band !== null) {
             // In the strip along the top, a duckling rides near its lower edge, clear of the header above.
-            dy += clamp((this.band - 14 - d.y) / 12, -3, 3);
+            dy += clamp((band - 14 - d.y) / 12, -3, 3);
         } else {
             dy += edge(d.y - L) - edge(H - d.y);
         }
@@ -846,8 +884,11 @@ export class World {
         if (d.food && (!this.pellets.includes(d.food) || !floating(d.food))) d.food = null;
         if (d.food) return d.food;
         let bestD = DUCK_RANGE * DUCK_RANGE;
+        const band = this.duckBand;
         for (const p of this.pellets) {
             if (!floating(p)) continue;
+            // Kept to the strip, a duckling only goes for food that lands in it.
+            if (band !== null && p.y > band + d.length * 0.3) continue;
             const dist = (p.x - x) ** 2 + (p.y - y) ** 2;
             if (dist < bestD) {
                 bestD = dist;
@@ -871,8 +912,11 @@ export class World {
     private nearestPellet(x: number, y: number, range: number) {
         let best: Pellet | null = null;
         let bestD = range * range;
+        const ceiling = this.koiCeiling;
         for (const p of this.pellets) {
             if (!p.landed) continue;
+            // Food in the ducklings' strip is out of the koi's reach.
+            if (p.y < ceiling) continue;
             const d = (p.x - x) ** 2 + (p.y - y) ** 2;
             if (d < bestD) {
                 bestD = d;

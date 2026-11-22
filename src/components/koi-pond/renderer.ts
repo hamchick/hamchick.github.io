@@ -264,6 +264,8 @@ export class KoiRenderer {
     private hitTx = 1;
     private hitTy = 0;
     private hitSeg = 0;
+    /** Top of the koi's water this frame (see World.koiCeiling). */
+    private koiCeiling = 0;
 
     constructor(canvas: HTMLCanvasElement) {
         const ctx = canvas.getContext("2d");
@@ -329,8 +331,10 @@ export class KoiRenderer {
         this.cellGlyph.fill(0);
         this.cellTileAlpha.fill(0);
         this.cellShadow.fill(0);
+        this.koiCeiling = world.koiCeiling;
         // Deeper koi first, so the ones near the surface glide over them.
         for (const k of [...world.koi].sort((a, b) => a.depth - b.depth)) this.rasterizeKoi(k, world.time);
+        this.fadeUnderStrip();
         this.depositWake(world);
         this.diffuse(dt);
 
@@ -352,6 +356,25 @@ export class KoiRenderer {
         this.drawBites(world);
         this.drawQuacks(world);
         ctx.globalAlpha = 1;
+    }
+
+    /**
+     * On the home page, koi slipping under the edge of the ducklings' strip fade out over the last few rows above it,
+     * as if going down under the bank, rather than being cut off along a straight line.
+     */
+    private fadeUnderStrip() {
+        const { ch, cols, rows, cellAlpha, cellTileAlpha, cellShadow } = this;
+        if (this.koiCeiling <= 0) return;
+        const ceilingRow = Math.ceil(this.koiCeiling / ch);
+        const span = 3;
+        for (let r = ceilingRow; r < Math.min(rows, ceilingRow + span); r++) {
+            const k = (r - ceilingRow + 1) / (span + 1);
+            for (let i = r * cols; i < (r + 1) * cols; i++) {
+                cellAlpha[i] *= k;
+                cellTileAlpha[i] *= k;
+                if (k < 0.5) cellShadow[i] = 0;
+            }
+        }
     }
 
     private style(rgb: number) {
@@ -498,7 +521,9 @@ export class KoiRenderer {
         const reach = L * 0.26;
         const c0 = Math.max(0, Math.floor((minX - reach) / cw));
         const c1 = Math.min(cols - 1, Math.floor((maxX + reach) / cw));
-        const r0 = Math.max(0, Math.floor((minY - reach) / ch));
+        // On the home page the koi's water starts below the ducklings' strip: they slip under its edge, out of sight.
+        const ceilingRow = Math.ceil(this.koiCeiling / ch);
+        const r0 = Math.max(ceilingRow, Math.floor((minY - reach) / ch));
         const r1 = Math.min(rows - 1, Math.floor((maxY + reach) / ch));
         if (c0 > c1 || r0 > r1) return;
 

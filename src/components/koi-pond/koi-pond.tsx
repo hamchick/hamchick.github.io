@@ -126,6 +126,11 @@ class PondEngine {
         this.bandTimer = window.setTimeout(() => this.world.setBand(band), BAND_TRANSITION_MS);
     }
 
+    /** Keep the ducklings to a strip this deep along the top on the home page too, or null to let them roam. */
+    setDuckStrip(depth: number | null) {
+        this.world.setDuckStrip(depth);
+    }
+
     setTheme(isLight: boolean) {
         this.renderer.setTheme(isLight);
         if (this.reducedMotion.matches) this.drawStill();
@@ -276,9 +281,11 @@ type KoiPondProps = {
     onStats?: (stats: PondStats) => void;
     /** Depth of the strip of water showing along the top, or null for the whole pond. */
     band?: number | null;
+    /** Depth of the strip the ducklings keep to on the home page too, or null to let them roam the whole pond. */
+    duckStrip?: number | null;
 };
 
-export default function KoiPond({ className, onStats, band = null }: KoiPondProps) {
+export default function KoiPond({ className, onStats, band = null, duckStrip = null }: KoiPondProps) {
     const isLight = useIsLight();
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const engineRef = useRef<PondEngine | null>(null);
@@ -300,6 +307,10 @@ export default function KoiPond({ className, onStats, band = null }: KoiPondProp
     useEffect(() => {
         engineRef.current?.setTheme(isLight);
     }, [isLight]);
+
+    useEffect(() => {
+        engineRef.current?.setDuckStrip(duckStrip);
+    }, [duckStrip]);
 
     // The first band is set at once, for a page loaded straight onto a content page; later changes animate.
     const firstBand = useRef(true);

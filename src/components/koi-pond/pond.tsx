@@ -33,16 +33,19 @@ export function Pond() {
                     className="h-full w-full transition-opacity"
                     style={{ opacity: !home && scrolled ? 0.35 : 1, transitionDuration: `${BAND_TRANSITION_MS}ms` }}
                 >
-                    <KoiPond band={home ? null : strip.depth} className="h-full w-full" />
+                    <KoiPond band={home ? null : strip.depth} duckStrip={strip.depth} className="h-full w-full" />
                 </div>
             </div>
-            {/* The edge of the strip: a hairline where the water ends and the page begins. */}
+            {/*
+              The edge of the strip: a hairline where the water ends and the page begins. On the home page it stays,
+              fainter, as the line between the ducklings' strip of surface and the pond below.
+            */}
             <div
                 aria-hidden="true"
                 className="pointer-events-none fixed inset-x-0 top-0 z-[6] border-b border-line/70 transition-[height,opacity] ease-[cubic-bezier(0.65,0,0.35,1)]"
                 style={{
-                    height: shown ?? "100%",
-                    opacity: home ? 0 : 1,
+                    height: shown ?? strip.depth,
+                    opacity: home ? 0.6 : 1,
                     transitionDuration: `${BAND_TRANSITION_MS}ms`,
                 }}
             />
