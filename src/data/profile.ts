@@ -37,30 +37,21 @@ export const experience: TimelineItem[] = [
     href: "https://www.ctbcbank.com/",
     points: [
       "Rotated through information security, IT planning, digital finance innovation, data science and business analysis.",
-      "Rolled GitHub Copilot out across the bank: cleared security and compliance review, ran a seed-user programme and tracked adoption.",
-      "Helped set up the bank's cloud landing zone and contributed to its generative AI policy.",
-      "Researched LLM security risks and agent frameworks, which led into building the assistant above.",
+      "In information security, researched the risks of LLMs, which later shaped the guardrails in the assistant above.",
+      "In IT planning, was part of the team that brought GitHub Copilot into the bank: worked through the security and compliance review, planned a seed-user programme and tracked adoption.",
+      "In data science, evaluated agent frameworks such as LangGraph and Langflow and assessed technical risks for the bank's generative AI policy, which led into building the assistant.",
     ],
   },
   {
     title: "Research Assistant",
-    org: "National Taipei University · Prof. Shou-Yung Yin",
+    org: "National Taipei University · Economics",
     place: "New Taipei, Taiwan",
-    period: "Sep 2021 – Jun 2022",
-    href: "https://econ.ntpu.edu.tw/teachers/5/27",
+    period: "Sep 2020 – Jun 2022",
+    href: "https://econ.ntpu.edu.tw/",
     points: [
-      "Preprocessed and visualised economic data with Python and R.",
-      "Helped prepare course material and debug teaching code.",
-      "Reviewed homework and answered student questions in the programming class.",
+      "Cleaned and visualised economic data in Python and R, and TA'd a programming course.",
+      "Tested and debugged an R package for interactive data visualisation.",
     ],
-  },
-  {
-    title: "Research Assistant",
-    org: "National Taipei University · Prof. Mau-Ting Lin",
-    place: "New Taipei, Taiwan",
-    period: "Sep 2020 – Jun 2021",
-    href: "https://econ.ntpu.edu.tw/teachers/5/22",
-    points: ["Debugged and tested an R package for interactive data visualisation."],
   },
 ];
 
@@ -148,11 +139,17 @@ export const skills = [
   { group: "Languages", core: ["Python"], items: ["SQL", "TypeScript / React", "R"] },
 ];
 
-export const certificates: { name: string; date: string; href?: string }[] = [
-  { name: "Financial Planning Personnel", date: "Nov 2022" },
-  { name: "Trust Business Professional", date: "Nov 2022" },
-  { name: "Financial Derivatives Sales Personnel", date: "Oct 2022" },
-  { name: "TOEIC 950", date: "Sep 2022", href: "/files/TOEIC.jpg" },
-  { name: "Senior Securities Specialist", date: "Jan 2022" },
-  { name: "Financial Markets and Professional Ethics", date: "Jan 2022" },
+export const certificates: { group: string; items: { name: string; date: string }[] }[] = [
+  {
+    group: "Finance",
+    items: [
+      { name: "Financial Planning Personnel", date: "Nov 2022" },
+      { name: "Trust Business Professional", date: "Nov 2022" },
+      { name: "Financial Derivatives Sales Personnel", date: "Oct 2022" },
+      { name: "Senior Securities Specialist", date: "Jan 2022" },
+      { name: "Financial Markets and Professional Ethics", date: "Jan 2022" },
+    ],
+  },
+  // JLPT goes here once the results are in.
+  { group: "Language", items: [{ name: "TOEIC 950", date: "Sep 2022" }] },
 ];

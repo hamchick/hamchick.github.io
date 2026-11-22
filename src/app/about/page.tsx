@@ -124,28 +124,21 @@ export default function AboutPage() {
             <Reveal>
                 <section>
                     <SectionTitle index="03">Certificates</SectionTitle>
-                    <ul className={`${card} divide-y divide-line`}>
-                        {certificates.map((c) => (
-                            <li key={c.name}>
-                                {c.href ? (
-                                    <a
-                                        href={c.href}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        className="flex items-center justify-between gap-4 px-6 py-3.5 text-sm transition hover:text-accent"
-                                    >
-                                        {c.name}
-                                        <span className="shrink-0 font-mono text-xs text-muted">{c.date} · view ↗</span>
-                                    </a>
-                                ) : (
-                                    <div className="flex items-center justify-between gap-4 px-6 py-3.5 text-sm">
-                                        {c.name}
-                                        <span className="shrink-0 font-mono text-xs text-muted">{c.date}</span>
-                                    </div>
-                                )}
-                            </li>
+                    <div className={`${card} divide-y divide-line/60`}>
+                        {certificates.map((g) => (
+                            <div key={g.group} className="px-6 py-4">
+                                <h3 className="mb-2 font-mono text-xs lowercase text-accent">{g.group}</h3>
+                                <ul className="space-y-1.5 text-sm">
+                                    {g.items.map((c) => (
+                                        <li key={c.name} className="flex items-baseline justify-between gap-4">
+                                            {c.name}
+                                            <span className="shrink-0 font-mono text-xs text-muted">{c.date}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
                         ))}
-                    </ul>
+                    </div>
                 </section>
             </Reveal>
         </PageEnter>
