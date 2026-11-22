@@ -78,7 +78,7 @@ export interface Palette {
 }
 
 export const DARK: Palette = {
-    bg: [26, 25, 29],
+    bg: [26, 25, 31],
     white: [236, 228, 218],
     red: [232, 96, 56],
     black: [92, 90, 108],
