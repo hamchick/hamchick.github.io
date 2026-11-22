@@ -75,15 +75,19 @@ export default function AboutPage() {
                     <ul className={`${card} divide-y divide-line`}>
                         {certificates.map((c) => (
                             <li key={c.name}>
-                                <a
-                                    href={c.href}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="flex items-center justify-between px-6 py-3.5 text-sm transition hover:text-accent"
-                                >
-                                    {c.name}
-                                    <span className="font-mono text-xs text-muted">view ↗</span>
-                                </a>
+                                {c.href ? (
+                                    <a
+                                        href={c.href}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="flex items-center justify-between px-6 py-3.5 text-sm transition hover:text-accent"
+                                    >
+                                        {c.name}
+                                        <span className="font-mono text-xs text-muted">view ↗</span>
+                                    </a>
+                                ) : (
+                                    <div className="px-6 py-3.5 text-sm">{c.name}</div>
+                                )}
                             </li>
                         ))}
                     </ul>

@@ -128,11 +128,11 @@ export const skills = [
   { group: "Web", items: ["Django", "ASP.NET Core", "React / Next.js", "HTML & CSS"] },
 ];
 
-export const certificates = [
+export const certificates: { name: string; href?: string }[] = [
   { name: "TOEIC 950", href: "/files/TOEIC.jpg" },
-  { name: "Senior Securities Specialist", href: "/files/Certificates.pdf" },
-  { name: "Trust Operations Personnel", href: "/files/Certificates.pdf" },
-  { name: "Financial Derivatives Sales Personnel", href: "/files/Certificates.pdf" },
-  { name: "Financial Planning Personnel", href: "/files/Certificates.pdf" },
-  { name: "Financial Markets and Professional Ethics", href: "/files/Certificates.pdf" },
+  { name: "Senior Securities Specialist" },
+  { name: "Trust Operations Personnel" },
+  { name: "Financial Derivatives Sales Personnel" },
+  { name: "Financial Planning Personnel" },
+  { name: "Financial Markets and Professional Ethics" },
 ];
