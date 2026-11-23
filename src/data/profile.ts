@@ -98,6 +98,18 @@ export const projects: Project[] = [
     links: [],
   },
   {
+    title: "JLPT study system, coached by Claude",
+    kind: "Side project · In progress",
+    points: [
+      "Preparing for JLPT N2 and N3 on the same day in December 2026, two hours a day in scattered slots, with Claude as the study coach.",
+      "Started from a timed baseline on a past paper. Reading and listening were already strong; the wrong answers showed the gap was grammar in isolation, not using the language.",
+      "Built the plan around that: two custom Anki decks, a grammar reference written in Chinese, and an error log grouped by concept that decides what to study next.",
+      "Results come out in early 2027.",
+    ],
+    tags: ["Claude", "Anki / FSRS", "Spaced repetition", "Japanese"],
+    links: [],
+  },
+  {
     title: "Fake News Detection",
     kind: "Independent study · NLP",
     points: [
