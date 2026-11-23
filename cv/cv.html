@@ -1,0 +1,160 @@
+<!doctype html>
+<!--
+  General-purpose English CV. Public version: no phone number.
+  For a specific application, copy this file outside the repo, tailor it, and add the phone there.
+  Build:  bash cv/build.sh   (writes public/files/Hsin-En_Huang_CV.pdf)
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Hsin-En Huang · CV</title>
+<style>
+  @page { size: A4; margin: 15mm 17mm; }
+  * { box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body {
+    margin: 0;
+    font-family: Cambria, "Latin Modern Roman", Georgia, serif;
+    font-size: 10.2pt;
+    line-height: 1.32;
+    color: #1a1a1a;
+    background: #fff;
+  }
+  a { color: inherit; text-decoration: none; }
+  .accent { color: #1f4e79; }
+
+  header { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 1.2pt solid #1a1a1a; padding-bottom: 5pt; }
+  h1 { margin: 0; font-size: 22pt; font-weight: 700; letter-spacing: 0.2pt; }
+  .role { margin-top: 1pt; font-size: 11pt; }
+  .contact { text-align: right; font-size: 9.6pt; line-height: 1.45; }
+  .contact a { color: #1f4e79; }
+
+  .summary { margin: 7pt 0 0; }
+
+  h2 {
+    margin: 11pt 0 4pt;
+    font-size: 11.5pt;
+    font-variant: small-caps;
+    letter-spacing: 0.6pt;
+    color: #1f4e79;
+    border-bottom: 0.5pt solid #9aa9b8;
+    padding-bottom: 1pt;
+  }
+
+  .entry { margin-top: 5pt; break-inside: avoid; }
+  .entry:first-of-type { margin-top: 0; }
+  .line { display: flex; justify-content: space-between; gap: 10pt; }
+  .title { font-weight: 700; }
+  .org { font-style: italic; }
+  .when { white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .sub { font-size: 9.6pt; color: #444; }
+
+  ul { margin: 2pt 0 0; padding-left: 13pt; }
+  li { margin: 1pt 0; }
+  li::marker { color: #1f4e79; }
+
+  .grid { display: grid; grid-template-columns: 7.2em 1fr; column-gap: 8pt; row-gap: 2pt; }
+  .grid dt { font-weight: 700; }
+  .grid dd { margin: 0; }
+  .core { font-weight: 700; }
+  .link { color: #1f4e79; font-size: 9.4pt; }
+
+  @media screen {
+    body { background: #e8e8e8; }
+    .page { width: 210mm; min-height: 297mm; margin: 20px auto; padding: 15mm 17mm; background: #fff; box-shadow: 0 1px 6px rgba(0,0,0,.2); }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+<header>
+  <div>
+    <h1>Hsin-En Huang</h1>
+    <div class="role">LLM Engineer · Taipei, Taiwan</div>
+  </div>
+  <div class="contact">
+    <a href="mailto:chickenhamgod@gmail.com">chickenhamgod@gmail.com</a><br>
+    <a href="https://hamchick.github.io/">hamchick.github.io</a><br>
+    <a href="https://github.com/hamchick">github.com/hamchick</a>
+  </div>
+</header>
+
+<p class="summary">
+  Engineer building LLM agents that run in production at a bank, from the agent flow to the guardrails,
+  evaluation and access control around it. Background in computer science and economics.
+</p>
+
+<h2>Experience</h2>
+
+<div class="entry">
+  <div class="line"><span><span class="title">LLM Engineer</span>, <span class="org">CTBC Bank</span></span><span class="when">Jun 2025 – Present</span></div>
+  <ul>
+    <li>Designed and built the core of an in-house LLM assistant that the bank's relationship managers use to search internal knowledge, look up a client and screen client lists in plain language.</li>
+    <li>Halved response time by moving from Langflow and LangGraph to the OpenAI Agents SDK, precomputing heavy work overnight, and racing a small model against a large one.</li>
+    <li>Built the production side: token budgets, keyless auth, fallbacks, access control, masking of client names, guardrails and LLM-as-a-judge evaluation.</li>
+    <li>Co-developed shared streaming and observability packages with IT, now used by other internal AI projects.</li>
+  </ul>
+</div>
+
+<div class="entry">
+  <div class="line"><span><span class="title">Management Associate, Technology</span>, <span class="org">CTBC Bank</span></span><span class="when">Jul 2023 – May 2025</span></div>
+  <div class="sub">Rotated through information security, IT planning, digital finance innovation, data science and business analysis.</div>
+  <ul>
+    <li>Information security: researched the risks of LLMs, which later shaped the assistant's guardrails.</li>
+    <li>IT planning: helped bring GitHub Copilot into the bank, working through the security and compliance review, planning a seed-user programme and tracking adoption.</li>
+    <li>Data science: evaluated agent frameworks such as LangGraph and Langflow and assessed technical risks for the bank's generative AI policy, which led into building the assistant.</li>
+  </ul>
+</div>
+
+<div class="entry">
+  <div class="line"><span><span class="title">Research Assistant</span>, <span class="org">National Taipei University, Dept. of Economics</span></span><span class="when">Sep 2020 – Jun 2022</span></div>
+  <ul>
+    <li>Cleaned and visualised economic data in Python and R, and TA'd a programming course.</li>
+    <li>Tested and debugged an R package for interactive data visualisation.</li>
+  </ul>
+</div>
+
+<h2>Education</h2>
+
+<div class="entry">
+  <div class="line"><span><span class="title">M.A. in Economics</span>, <span class="org">National Taipei University</span></span><span class="when">2020 – 2022</span></div>
+  <div>Thesis: <em>Bitcoin Price Forecast Using Echo State Network</em>
+    <a class="link" href="https://hdl.handle.net/11296/7eqg42">[thesis]</a>
+    <a class="link" href="https://github.com/hamchick/Bitcoin-Price-Forecast-Using-Echo-State-Network">[code]</a></div>
+  <ul>
+    <li>Compared ARIMA with Echo State Networks (a reservoir-computing RNN); with phase-space reconstruction the network escaped the random-walk hypothesis and produced efficient forecasts.</li>
+  </ul>
+</div>
+
+<div class="entry">
+  <div class="line"><span><span class="title">B.S. in Computer Science</span>, <span class="org">National Taiwan University of Science and Technology</span></span><span class="when">2016 – 2020</span></div>
+</div>
+
+<h2>Projects</h2>
+
+<div class="entry">
+  <div class="line"><span><span class="title">Fake News Detection</span>, <span class="org">independent study</span>
+    <a class="link" href="https://drive.google.com/file/d/1ZwoqvLV5wR0spBtfCrrcylUMLvZEU7G8/view">[report]</a>
+    <a class="link" href="https://github.com/hamchick/FakeNewsDetect">[code]</a></span></div>
+  <ul>
+    <li>NLP on news reports to decide whether they are fake; implemented and compared classification and regression approaches across many models.</li>
+  </ul>
+</div>
+
+<h2>Skills</h2>
+<dl class="grid">
+  <dt>LLM &amp; ML</dt><dd><span class="core">LLM agents, guardrails &amp; evaluation</span>; NLP, time-series forecasting, econometrics</dd>
+  <dt>Engineering</dt><dd><span class="core">OpenAI Agents SDK, FastAPI, AI-assisted development</span>; Azure OpenAI, LangGraph / Langflow, Redis, SQL Server, OpenTelemetry</dd>
+  <dt>Languages</dt><dd><span class="core">Python</span>; SQL, TypeScript / React, R</dd>
+</dl>
+
+<h2>Certificates</h2>
+<dl class="grid">
+  <dt>Language</dt><dd>TOEIC 950 (2022)</dd>
+  <dt>Finance</dt><dd>Senior Securities Specialist; Financial Planning Personnel; Trust Business Professional; Financial Derivatives Sales Personnel; Financial Markets and Professional Ethics (2022)</dd>
+</dl>
+
+</div>
+</body>
+</html>

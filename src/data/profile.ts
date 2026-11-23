@@ -7,8 +7,8 @@ export const profile = {
   email: "chickenhamgod@gmail.com",
   github: "https://github.com/hamchick",
   instagram: "https://www.instagram.com/ham_chick_/",
-  // No CV link until there's a current one.
-  cv: null as string | null,
+  // Built from cv/cv.html with `bash cv/build.sh`; set to null to hide the CV links.
+  cv: "/files/Hsin-En_Huang_CV.pdf" as string | null,
   focus: ["LLM agents", "machine learning", "finance", "web development"],
   intro: "My assistant helps bankers find answers.\nAnd I look for harder questions.",
 };
