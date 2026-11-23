@@ -70,14 +70,24 @@ export default function WorkPage() {
                             {thesis.tags.map((t) => (
                                 <Tag key={t}>{t}</Tag>
                             ))}
-                            <a
-                                href={thesis.href}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="ml-auto text-sm font-medium text-accent hover:underline"
-                            >
-                                Read the thesis →
-                            </a>
+                            <div className="ml-auto flex gap-4 text-sm font-medium">
+                                <a
+                                    href={thesis.code}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="text-accent hover:underline"
+                                >
+                                    Code ↗
+                                </a>
+                                <a
+                                    href={thesis.href}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="text-accent hover:underline"
+                                >
+                                    Read the thesis →
+                                </a>
+                            </div>
                         </div>
                     </article>
                 </section>

@@ -75,6 +75,7 @@ export const education: TimelineItem[] = [
 export const thesis = {
   title: "Bitcoin Price Forecast Using Echo State Network",
   href: "https://hdl.handle.net/11296/7eqg42",
+  code: "https://github.com/hamchick/Bitcoin-Price-Forecast-Using-Echo-State-Network",
   points: [
     "Echo State Networks are recurrent neural networks with a sparsely connected, fixed-weight reservoir.",
     "Compared four model structures, from a classic ARIMA baseline to Echo State Networks with different techniques.",
@@ -121,16 +122,6 @@ export const projects: Project[] = [
       { label: "Report", href: "https://drive.google.com/file/d/1ZwoqvLV5wR0spBtfCrrcylUMLvZEU7G8/view" },
       { label: "GitHub", href: "https://github.com/hamchick/FakeNewsDetect" },
     ],
-  },
-  {
-    title: "Interactive Visual Dashboard",
-    kind: "Independent study · R",
-    points: [
-      "Debugged and tested an R package by Prof. Mau-Ting Lin.",
-      "Plots any chosen dataset with several interactive methods.",
-    ],
-    tags: ["R", "Data viz"],
-    links: [{ label: "GitHub", href: "https://github.com/hamchick/Iteractive-visual-dashboard" }],
   },
   {
     title: "This website",
