@@ -87,8 +87,8 @@ Others: Azure OpenAI · LangGraph · Langflow · Redis · SQL Server · OpenTele
 ## Featured
 
 1. Personal website: https://hamchick.github.io/
-2. Master's thesis: https://hdl.handle.net/11296/7eqg42
-3. GitHub: https://github.com/hamchick
+2. GitHub: https://github.com/hamchick
+3. Master's thesis: https://hdl.handle.net/11296/7eqg42
 
 ## Languages
 
