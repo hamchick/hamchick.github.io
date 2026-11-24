@@ -14,6 +14,7 @@ export function Pond() {
     const scrolled = useScrolled();
     const strip = useStrip();
     const shown = home ? null : scrolled ? strip.slim : strip.depth;
+    const fade = { transitionDuration: `${BAND_TRANSITION_MS}ms` };
     return (
         <>
             {/*
@@ -25,14 +26,25 @@ export function Pond() {
                 className="fixed inset-0 z-[5] bg-bg transition-[clip-path] ease-[cubic-bezier(0.65,0,0.35,1)]"
                 style={{
                     clipPath: shown === null ? "inset(0 0 0 0)" : `inset(0 0 calc(100% - ${shown}px) 0)`,
-                    transitionDuration: `${BAND_TRANSITION_MS}ms`,
+                    ...fade,
                 }}
             >
-                {/* Only the koi fade when the page is scrolled, not the strip's backing. */}
+                {/*
+                  On the home page, the ducklings' strip has a colour of its own and casts a soft shadow on the pond
+                  below. Both fade out on a content page, whose strip along the top is all the one colour.
+                */}
                 <div
-                    className="h-full w-full transition-opacity"
-                    style={{ opacity: !home && scrolled ? 0.35 : 1, transitionDuration: `${BAND_TRANSITION_MS}ms` }}
-                >
+                    aria-hidden="true"
+                    className="absolute inset-x-0 top-0 bg-(--strip) transition-opacity"
+                    style={{ height: strip.home, opacity: home ? 1 : 0, ...fade }}
+                />
+                <div
+                    aria-hidden="true"
+                    className="absolute inset-x-0 h-5 bg-linear-to-b from-(--strip-shadow) to-transparent transition-opacity"
+                    style={{ top: strip.home, opacity: home ? 1 : 0, ...fade }}
+                />
+                {/* Only the koi fade when the page is scrolled, not the strip's backing. */}
+                <div className="relative h-full w-full transition-opacity" style={{ opacity: !home && scrolled ? 0.35 : 1, ...fade }}>
                     <KoiPond band={home ? null : strip.depth} duckStrip={home ? strip.home : strip.depth} className="h-full w-full" />
                 </div>
             </div>
@@ -46,7 +58,7 @@ export function Pond() {
                 style={{
                     height: shown ?? strip.home,
                     opacity: home ? 0.6 : 1,
-                    transitionDuration: `${BAND_TRANSITION_MS}ms`,
+                    ...fade,
                 }}
             />
         </>
