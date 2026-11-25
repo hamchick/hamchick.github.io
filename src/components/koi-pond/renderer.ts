@@ -41,7 +41,7 @@ export type Rgb = [number, number, number];
 // How visible a koi stays while it swims under page content.
 const DIM_UNDER_CONTENT = 0.15;
 // How visible the koi are in the strip along the top of a content page, so they don't crowd the ducklings' water.
-const KOI_IN_STRIP = 0.45;
+const KOI_IN_STRIP = 0.22;
 
 export interface Palette {
     /** Page background, which tiles are mixed toward. */

@@ -21,8 +21,9 @@
   --line: 222 218 208;
   --accent: 222 110 30;
   /* The strip along the top of every page, set apart from the pond below, and the soft shadow it casts on the pond. */
-  --strip: #eaf0f6;
-  --strip-shadow: rgb(60 80 110 / 0.12);
+  /* A hint of the pond's blue pulled toward the warm page colour, so the two don't clash. */
+  --strip: #e7ebea;
+  --strip-shadow: rgb(90 80 60 / 0.1);
 
   --pond-water: 70 125 180;
   --pond-crumb: 160 105 50;
