@@ -30,13 +30,14 @@ export function Pond() {
                 }}
             >
                 {/*
-                  On the home page, the ducklings' strip has a colour of its own and casts a soft shadow on the pond
-                  below. Both fade out on a content page, whose strip along the top is all the one colour.
+                  The ducklings' strip has a colour of its own on every page, so it doesn't change colour as you move
+                  between them; on a content page it fills the whole strip along the top. On the home page it also
+                  casts a soft shadow on the pond below, which fades out on a content page.
                 */}
                 <div
                     aria-hidden="true"
-                    className="absolute inset-x-0 top-0 bg-(--strip) transition-opacity"
-                    style={{ height: strip.home, opacity: home ? 1 : 0, ...fade }}
+                    className="absolute inset-x-0 top-0 bg-(--strip) transition-[height] ease-[cubic-bezier(0.65,0,0.35,1)]"
+                    style={{ height: home ? strip.home : strip.depth, ...fade }}
                 />
                 <div
                     aria-hidden="true"

@@ -20,7 +20,7 @@
   --muted: 98 100 110;
   --line: 222 218 208;
   --accent: 222 110 30;
-  /* The ducklings' strip on the home page, set apart from the pond below, and the soft shadow it casts on the pond. */
+  /* The strip along the top of every page, set apart from the pond below, and the soft shadow it casts on the pond. */
   --strip: #eaf0f6;
   --strip-shadow: rgb(60 80 110 / 0.12);
 
