@@ -6,7 +6,7 @@ import { profile } from "@/data/profile";
 
 export const contactLinks = [
     { label: "GitHub", href: profile.github },
-    { label: "Instagram", href: profile.instagram },
+    ...(profile.linkedin ? [{ label: "LinkedIn", href: profile.linkedin }] : []),
 ];
 
 /**

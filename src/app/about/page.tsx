@@ -15,7 +15,7 @@ const path: [string, string][] = [
 
 /** Short side facts, label then value. */
 const facts: [string, string][] = [
-    ["used to", "Grind LeetCode for the streak, until AI showed up and hand‑coding stopped being a thing"],
+    ["used to", "Grind LeetCode for the streak, until AI changed what's worth practising"],
     ["hooked on", "Putting AI on my hobbies too: Japanese practice, diet, training"],
     ["off-screen", "Running twice a week, table tennis now and then, surfing and skiing next"],
 ];

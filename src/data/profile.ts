@@ -6,7 +6,8 @@ export const profile = {
   handle: "hamchick",
   email: "chickenhamgod@gmail.com",
   github: "https://github.com/hamchick",
-  instagram: "https://www.instagram.com/ham_chick_/",
+  // Set once the LinkedIn profile is live; null hides the link.
+  linkedin: null as string | null,
   // Built from cv/cv.html with `bash cv/build.sh`; set to null to hide the CV links.
   cv: "/files/Hsin-En_Huang_CV.pdf" as string | null,
   focus: ["LLM agents", "machine learning", "finance", "web development"],
@@ -79,7 +80,8 @@ export const thesis = {
   points: [
     "Echo State Networks are recurrent neural networks with a sparsely connected, fixed-weight reservoir.",
     "Compared four model structures, from a classic ARIMA baseline to Echo State Networks with different techniques.",
-    "With phase-space reconstruction, the Echo State Network escaped the random-walk hypothesis and produced efficient forecasts.",
+    "ARIMA's forecasts stayed close to the previous day's price, as the random-walk hypothesis predicts; the Echo State Networks beat it on both MSE and trend direction.",
+    "The best, with phase-space reconstruction, called the direction of 72 of 100 days correctly.",
   ],
   tags: ["Python", "Time series", "RNN", "ARIMA"],
 };
@@ -112,10 +114,11 @@ export const projects: Project[] = [
   },
   {
     title: "Fake News Detection",
-    kind: "Independent study · NLP",
+    kind: "Undergraduate team project · NLP",
     points: [
-      "Natural language processing on news reports to decide whether they are fake.",
-      "Implemented and compared both classification and regression approaches across many models.",
+      "Sorted news into kinds of fake (hate, bias, satire and more) with a keyword dictionary built from four word-scoring methods, compared across Naive Bayes, SVM and random forest.",
+      "Scored how credible a story is from 0 to 1 with a CNN + LSTM model that reads both the text and who said it.",
+      "Main lesson: balanced, varied data moved accuracy more than the choice of model.",
     ],
     tags: ["Python", "NLP", "Machine learning"],
     links: [
@@ -127,10 +130,11 @@ export const projects: Project[] = [
     title: "This website",
     kind: "Next.js · Canvas",
     points: [
-      "Static Next.js site deployed to GitHub Pages with GitHub Actions.",
-      "The pond is a hand-written wave simulation drawn as ASCII on a canvas. Try clicking the water.",
+      "Built with Claude Code as a pair: I set the design and made the calls, it wrote most of the code, and I reviewed every change.",
+      "The koi and ducklings are a hand-tuned simulation drawn as ASCII on a canvas. Try clicking the water.",
+      "Static Next.js on GitHub Pages.",
     ],
-    tags: ["TypeScript", "React", "Canvas"],
+    tags: ["TypeScript", "React", "Canvas", "Claude Code"],
     links: [{ label: "GitHub", href: "https://github.com/hamchick/hamchick.github.io" }],
   },
 ];
