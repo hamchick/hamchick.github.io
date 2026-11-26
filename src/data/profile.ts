@@ -11,7 +11,7 @@ export const profile = {
   // Built from cv/cv.html with `bash cv/build.sh`; set to null to hide the CV links.
   cv: "/files/Hsin-En_Huang_CV.pdf" as string | null,
   focus: ["LLM agents", "machine learning", "finance", "web development"],
-  intro: "My assistant helps bankers find answers.\nAnd I look for harder questions.",
+  intro: "My agents help bankers find answers.\nAnd I keep finding harder questions for them.",
 };
 
 export type TimelineItem = { title: string; org: string; place: string; period: string; href?: string; points?: string[] };

@@ -12,7 +12,7 @@ Paste-ready text for each LinkedIn section. Keep it in step with src/data/profil
 ## About
 
 ```
-My assistant helps bankers find answers. I look for harder questions.
+My agents help bankers find answers. And I keep finding harder questions for them.
 
 At CTBC Bank I designed and built the core of an in-house assistant for relationship managers. It searches internal knowledge, pulls up a client and screens client lists in plain language, inside the system they already use.
 
